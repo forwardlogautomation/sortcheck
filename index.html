@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#5F7A61">
+<title>SortCheck · Forwardlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* Forwardlog style: green #5F7A61, grey #6B6B6B, Montserrat */
+:root{
+  --brand:#5F7A61;--brand-dk:#475C4A;--brand-lt:#E9F0E9;--brand-ink:#fff;
+  --bg:#F3F5F2;--card:#fff;--ink:#262A27;--grey:#6B6B6B;--muted:#7A807B;--line:#E2E7E2;
+  --ok:#2E7D4F;--ok-bg:#E2F3E8;--bad:#C0392B;--bad-bg:#FBE4E1;--warn:#B7791F;--warn-bg:#FDF1DC;--info-bg:#EEF2EE;
+  --radius:14px;--shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(40,60,45,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--brand-dk)}
+/* header */
+header.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:3px solid var(--brand);padding:8px 12px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+header.top .logo{height:58px;width:auto;margin:-4px auto -4px 0;display:block;flex:0 0 auto}
+header.top .htitle{order:3;flex:1 0 100%;min-width:0;display:flex;align-items:baseline;gap:8px;line-height:1.2;padding:5px 2px 0;border-top:1px solid var(--line)}
+header.top .app{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--brand);text-transform:uppercase}
+header.top h1,header.top .sub{font-size:15px;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+header.top button{background:var(--brand-lt);color:var(--brand-dk);border:0;border-radius:10px;padding:7px 11px;font-size:16px;font-weight:700}
+.sync{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--brand-lt);color:var(--brand-dk);white-space:nowrap}
+.sync.err{background:var(--bad-bg);color:var(--bad)}
+main{max-width:900px;margin:0 auto;padding:14px 12px 24px}
+footer.tag{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.4px;padding:4px 0 22px}
+footer.tag b{color:var(--brand)}
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h2{font-size:13px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.8px;color:var(--grey);font-weight:700}
+.card.hero{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dk) 100%);color:#fff;border:0}
+.card.hero .muted{color:rgba(255,255,255,.8)}
+.card.hero input{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35);color:#fff}
+.card.hero input::placeholder{color:rgba(255,255,255,.7)}
+.card.hero label{color:rgba(255,255,255,.85)}
+.btn.acct{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.4)}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 5px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid #CBD3CB;border-radius:11px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(95,122,97,.22)}
+input.scan{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:21px;letter-spacing:.5px;padding:14px;border-width:2px}
+button{font:inherit;cursor:pointer}
+.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;border:0;border-radius:11px;padding:12px 16px;font-size:15px;font-weight:700;background:var(--brand);color:var(--brand-ink);transition:transform .05s,filter .15s}
+.btn:active{transform:scale(.97);filter:brightness(.93)}
+.btn.sec{background:#EDF1ED;color:var(--ink)}
+.btn.ok{background:var(--ok)}
+.btn.bad{background:var(--bad)}
+.btn.sm{padding:8px 12px;font-size:13px}
+.btn.icon{width:52px;padding:12px 0;font-size:20px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row > *{flex:1}
+.row > .nogrow{flex:0 0 auto}
+.muted{color:var(--muted);font-size:12.5px}
+.grow{flex:1;min-width:0}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,monospace}
+/* lists */
+.list{list-style:none;margin:0;padding:0}
+.list li{border-bottom:1px solid var(--line);padding:12px 6px 12px 12px;display:flex;align-items:center;gap:10px;border-left:4px solid transparent}
+.list li:last-child{border-bottom:0}
+.list li.click{cursor:pointer;border-radius:8px}
+.list li.click:active{background:#F1F5F1}
+.list li.st-ok{border-left-color:var(--ok)}
+.list li.st-bad{border-left-color:var(--bad)}
+.list li.st-prog{border-left-color:var(--warn)}
+.list li.st-todo{border-left-color:#CBD3CB}
+.list .chev{color:#B5BDB6;font-size:20px;flex:0 0 auto}
+.item-title{font-weight:600;font-size:14px}
+.chip{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:4px 9px;border-radius:999px;background:#ECEFEC;color:#4B524C;white-space:nowrap;text-transform:uppercase}
+.chip.OK,.chip.CHECKED{background:var(--ok-bg);color:var(--ok)}
+.chip.MISSING,.chip.EXTRA,.chip.WRONG,.chip.NOT_IN_WAVE,.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.SHORT,.chip.OVER,.chip.warn,.chip.IN_PROGRESS{background:var(--warn-bg);color:var(--warn)}
+.chip.brand{background:var(--brand-lt);color:var(--brand-dk)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#F7F9F7;border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.stat b{display:block;font-size:26px;line-height:1.1;font-weight:800}
+.stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+/* result banner */
+.banner{display:flex;align-items:center;gap:12px;border-radius:var(--radius);padding:14px 16px;font-size:17px;font-weight:700;margin-bottom:12px;text-align:left;border:2px solid transparent}
+.banner .bicon{flex:0 0 40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;background:var(--muted)}
+.banner .btxt{flex:1;min-width:0}
+.banner small{display:block;font-size:13px;font-weight:600;margin-top:2px;font-family:ui-monospace,Consolas,monospace;opacity:.85;word-break:break-all}
+.banner.OK{background:var(--ok-bg);color:var(--ok);border-color:rgba(46,125,79,.25)}.banner.OK .bicon{background:var(--ok)}
+.banner.WRONG,.banner.NOT_IN_WAVE,.banner.ERR{background:var(--bad-bg);color:var(--bad);border-color:rgba(192,57,43,.25)}
+.banner.WRONG .bicon,.banner.NOT_IN_WAVE .bicon,.banner.ERR .bicon{background:var(--bad)}
+.banner.OVER{background:var(--warn-bg);color:var(--warn);border-color:rgba(183,121,31,.25)}.banner.OVER .bicon{background:var(--warn)}
+.banner.INFO{background:var(--info-bg);color:var(--brand-dk)}.banner.INFO .bicon{background:var(--brand)}
+.banner.flash{animation:flash .35s ease-out}
+@keyframes flash{from{transform:scale(1.03);filter:brightness(1.08)}to{transform:none}}
+/* progress */
+.progress{height:10px;background:#E4E9E4;border-radius:99px;overflow:hidden}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),#7FA083);border-radius:99px;transition:width .3s}
+.progress.over > i{background:var(--warn)}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--grey)}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.tablewrap{overflow-x:auto}
+details.card summary{cursor:pointer;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--grey);list-style:none}
+details.card summary::after{content:"▾";float:right;color:var(--muted)}
+details[open].card summary::after{content:"▴"}
+/* sticky action bar on container screen */
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;box-shadow:0 -4px 14px rgba(0,0,0,.06)}
+.actionbar .btn{flex:1}
+.actionbar .btn.ok{flex:1.4}
+body.has-bar main{padding-bottom:90px}
+body.has-bar footer.tag{padding-bottom:96px}
+/* camera */
+#cam{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
+#cam video{flex:1;width:100%;object-fit:cover;min-height:0}
+#cam .camhud{position:absolute;left:0;right:0;top:0;padding:12px;display:flex;gap:8px;align-items:center;color:#fff;background:linear-gradient(#000a,#0000)}
+#cam .camhud .grow{font-weight:700}
+#cam .reticle{position:absolute;left:10%;right:10%;top:35%;height:22%;border:3px solid rgba(255,255,255,.75);border-radius:14px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,.25)}
+#cam .camlast{position:absolute;bottom:0;left:0;right:0;padding:16px 14px calc(16px + env(safe-area-inset-bottom));text-align:center;font-weight:700;font-size:17px;color:#fff;background:rgba(0,0,0,.65)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;z-index:60;font-size:14px;font-weight:600;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+@media print{header.top button,.noprint,.sync{display:none!important}body{background:#fff}.card{border:0;padding:0;box-shadow:none}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <button id="backBtn" class="hidden" aria-label="Back">&#8249;</button>
+  <img class="logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Forwardlog" onerror="this.style.display='none'">
+  <div class="htitle"><span class="app">SortCheck</span><h1 id="title">Sorting check</h1></div>
+  <span class="sync" id="syncBadge"></span>
+</header>
+
+<main>
+  <div id="boot" class="loading">Loading…</div>
+
+  <!-- HOME -->
+  <section id="vHome" class="hidden">
+    <div class="card hero">
+      <div style="font-size:20px;font-weight:800">Sorting discrepancy check</div>
+      <div class="muted" style="margin-top:2px">Pick a wave, scan each chute / box / tote, then every item inside.</div>
+      <label for="userIn">Your name / staff ID</label>
+      <input id="userIn" placeholder="e.g. Ali" autocomplete="off">
+      <div class="muted" id="emailTxt" style="margin-top:5px"></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:4px"><h2 class="grow" style="margin:0">Select wave</h2>
+        <button class="btn sec sm nogrow" id="refreshBtn">&#8635; Refresh</button></div>
+      <label for="sysSel">System / project</label>
+      <select id="sysSel"></select>
+      <ul class="list" id="waveList" style="margin-top:10px"></ul>
+      <p class="muted" id="noWaves"></p>
+    </div>
+    <details class="card">
+      <summary>Settings</summary>
+      <label class="row" style="color:var(--ink);font-size:14px;margin-top:14px"><input type="checkbox" id="setKb" class="nogrow" style="width:22px;height:22px"> <span>Hardware scanner (hide on-screen keyboard)</span></label>
+      <label class="row" style="color:var(--ink);font-size:14px"><input type="checkbox" id="setSound" class="nogrow" style="width:22px;height:22px" checked> <span>Beep &amp; vibrate on scan</span></label>
+      <label for="setCam">Phone camera (&#128247; button)</label>
+      <select id="setCam"><option value="live">Live video scanning</option><option value="photo">Take a photo of each barcode</option></select>
+      <p class="muted" style="margin-bottom:0"><a href="#" id="adminLink">Admin: import history / flush waves &#8250;</a></p>
+    </details>
+  </section>
+
+  <!-- WAVE -->
+  <section id="vWave" class="hidden">
+    <div id="waveBanner"></div>
+    <div class="card">
+      <div class="row"><div class="grow"><span class="chip brand" id="wSys"></span><div style="font-size:18px;font-weight:800;margin-top:6px" id="wName"></div></div>
+        <button class="btn sec sm nogrow" id="reportBtn">&#128202; Report</button></div>
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><b id="wChecked">0/0</b><span>Containers</span></div>
+        <div class="stat"><b id="wItems">0/0</b><span>Items</span></div>
+        <div class="stat"><b id="wIss">0</b><span>Issues</span></div>
+      </div>
+      <div class="progress" style="margin:12px 0 4px"><i id="wProg" style="width:0"></i></div>
+      <div class="muted" id="wProgTxt"></div>
+    </div>
+    <div class="card">
+      <h2>Scan chute / box / tote</h2>
+      <div class="row">
+        <input id="contInput" class="scan" autocomplete="off" autocapitalize="characters" placeholder="Container no.">
+        <button class="btn nogrow" id="contGo">Go</button>
+        <button class="btn sec icon nogrow" id="contCam" title="Camera">&#128247;</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tabs" id="cTabs">
+        <button data-f="todo" class="on">To check</button>
+        <button data-f="issue">Discrepancy</button>
+        <button data-f="done">Checked</button>
+        <button data-f="all">All</button>
+      </div>
+      <ul class="list" id="contList"></ul>
+    </div>
+  </section>
+
+  <!-- CONTAINER -->
+  <section id="vCont" class="hidden">
+    <div id="contBanner" class="banner INFO"></div>
+    <div class="card">
+      <div class="row" style="margin-bottom:10px">
+        <div class="grow"><div class="muted">Chute / box / tote</div><b class="mono" style="font-size:26px" id="cName"></b> <span id="cFlag"></span></div>
+      </div>
+      <div class="progress" id="cProgBar" style="margin-bottom:12px"><i id="cProg" style="width:0"></i></div>
+      <div class="stats">
+        <div class="stat"><b id="sExp">0</b><span>Expected</span></div>
+        <div class="stat"><b id="sScan">0</b><span>Scanned</span></div>
+        <div class="stat"><b id="sIss">0</b><span>Issues</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <input id="itemInput" class="scan" autocomplete="off" autocapitalize="characters" placeholder="Scan item barcode">
+        <button class="btn nogrow" id="itemGo">Add</button>
+        <button class="btn sec icon nogrow" id="itemCam" title="Camera">&#128247;</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">Tip: scanning the next container's label finishes this one and opens the next.</p>
+    </div>
+    <div class="card">
+      <div class="row"><h2 class="grow" style="margin:0">Items</h2>
+        <label class="nogrow row" style="margin:0;color:var(--muted)"><input type="checkbox" id="showOk" class="nogrow" style="width:18px;height:18px"> show OK</label></div>
+      <ul class="list" id="lineList"></ul>
+    </div>
+    <div class="actionbar">
+      <button class="btn sec" id="undoBtn">&#8630; Undo</button>
+      <button class="btn sec" id="resetBtn">&#8635; Rescan</button>
+      <button class="btn ok" id="doneBtn">Done &#10003;</button>
+    </div>
+  </section>
+</main>
+<footer class="tag"><b>FORWARDLOG</b> · Endless Flexibility In Automation</footer>
+
+<!-- confirm modal -->
+<div id="modal" class="hidden" style="position:fixed;inset:0;background:#0007;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="card" style="max-width:420px;width:100%;margin:0">
+    <p id="modalMsg" style="margin-top:0;white-space:pre-line"></p>
+    <div class="row"><button class="btn sec" id="modalNo">Cancel</button><button class="btn" id="modalYes">OK</button></div>
+  </div>
+</div>
+
+<!-- camera overlay -->
+<div id="cam" class="hidden">
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div class="reticle"></div>
+  <div class="camhud"><div class="grow" id="camTitle">Scan</div><button class="btn sec sm" id="camClose">Close</button></div>
+  <div class="camlast"><div id="camLast">Point at a barcode</div>
+    <button class="btn hidden" id="camPhotoBtn" style="margin-top:10px">&#128248; Take photo of barcode</button></div>
+</div>
+<input type="file" id="camFile" accept="image/*" capture="environment" style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px">
+<canvas id="camCanvas" style="display:none"></canvas>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('sc_'+k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('sc_'+k, JSON.stringify(v)); }catch(e){} }
+};
+/** Calls the SortCheck server (Google Apps Script JSON API). No Google cookies are sent. */
+const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec';
+async function run(fn, ...args){
+  let r;
+  try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args}), redirect:'follow', credentials:'omit'}); }
+  catch(e){ throw new Error('No connection to the SortCheck server – check internet'); }
+  let j; try{ j = await r.json(); }catch(e){ throw new Error('Unexpected reply from server (HTTP '+r.status+')'); }
+  if(!j.ok) throw new Error(j.error || 'Server error');
+  return j.result;
+}
+function toast(msg, ms=2500){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), ms); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function goTop(url){ location.href = url; }
+// Google account switching. Apps Script web apps fail ("unable to open the file") when several Google
+// accounts are signed in at once, so switching = sign out of all accounts, then sign in with one.
+function switchAccount(base){ goTop('https://accounts.google.com/Logout?continue=' + encodeURIComponent('https://accounts.google.com/ServiceLogin?continue=' + encodeURIComponent(base))); }
+function signOutGoogle(base){ switchAccount(base); }
+const STATUS_LABEL = l => l.status==='EXTRA' ? (l.not_in_wave ? 'NOT IN WAVE' : 'WRONG') : l.status;
+</script>
+<script>
+(function(){ const im = document.querySelector('header .logo'); if(!im) return;
+  const c = LS.get('logo',''); if(c) im.src = c;
+  run('getLogo').then(u=>{ if(u && u!==c){ im.src = u; LS.set('logo', u); } }).catch(()=>{});
+})();
+</script>
+
+<script>
+const BASE = 'index.html';
+const S = { user: LS.get('user',''), email:'', waves:[], waveId:null, data:null, ov:null, cont:null,
+            contScans:[], filter:'todo', containerSet:new Set(), lastDone:null };
+
+/* ---------- confirm modal (native dialogs may be blocked inside Apps Script) */
+function ask(msg){
+  return new Promise(res=>{
+    $('#modalMsg').textContent = msg; $('#modal').classList.remove('hidden');
+    const done = v=>{ $('#modal').classList.add('hidden'); res(v); };
+    $('#modalYes').onclick = ()=>done(true); $('#modalNo').onclick = ()=>done(false);
+    setTimeout(()=>$('#modalYes').focus(), 30);
+  });
+}
+
+/* ---------- feedback */
+let actx;
+function beep(kind){
+  if(!$('#setSound').checked) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const seq = kind==='ok' ? [[1400,.08]] : kind==='warn' ? [[700,.15],[700,.15]] : [[300,.25],[300,.25],[300,.25]];
+    let t = actx.currentTime;
+    for(const [f,d] of seq){ const o=actx.createOscillator(), g=actx.createGain(); o.frequency.value=f; o.type='square'; g.gain.value=.15; o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+d); t+=d+.07; }
+    if(navigator.vibrate) navigator.vibrate(kind==='ok'?40:kind==='warn'?[120,60,120]:[300,100,300]);
+  }catch(e){}
+}
+
+/* ---------- background sync queue (scans are saved on the device first) */
+const Q = {
+  ops: LS.get('queue', []), inflight: null, failing: false, waiters: [],
+  save(){ LS.set('queue', this.ops); badge(); },
+  push(op){ op.id = op.id || uid(); op.ts = op.ts || nowStr(); op.user = S.user || S.email; this.ops.push(op); this.save(); this.kick(); return op; },
+  kick(){
+    if(this.inflight) return;
+    if(!this.ops.length){ this.resolve(); return; }
+    const batch = this.ops.slice(0, 60);
+    this.inflight = new Set(batch.map(o=>o.id)); badge();
+    run('sync', batch).then(()=>{
+      this.ops = this.ops.filter(o=>!this.inflight.has(o.id)); this.inflight = null; this.failing = false; this.save(); this.kick();
+    }).catch(e=>{ this.inflight = null; this.failing = true; badge(); setTimeout(()=>this.kick(), 4000); });
+  },
+  removeIfQueued(id){
+    if(this.inflight && this.inflight.has(id)) return false;
+    const n = this.ops.length; this.ops = this.ops.filter(o=>o.id!==id);
+    if(this.ops.length < n){ this.save(); return true; } return false;
+  },
+  flush(timeout=15000){
+    if(!this.ops.length && !this.inflight) return Promise.resolve(true);
+    return new Promise(res=>{ this.waiters.push(res); this.kick(); setTimeout(()=>res(false), timeout); });
+  },
+  resolve(){ const w = this.waiters; this.waiters = []; w.forEach(f=>f(true)); }
+};
+function badge(){
+  const b = $('#syncBadge'), n = Q.ops.length;
+  b.className = 'sync' + (Q.failing ? ' err' : '');
+  b.textContent = Q.failing ? `offline · ${n} waiting` : n ? `saving ${n}…` : '✓ saved';
+}
+window.addEventListener('online', ()=>Q.kick());
+setInterval(()=>Q.kick(), 15000);
+
+/* ---------- settings */
+$('#setKb').checked = LS.get('hidekb', false);
+$('#setSound').checked = LS.get('sound', true);
+function applyKb(){ const v = $('#setKb').checked; ['#contInput','#itemInput'].forEach(s=>$(s).setAttribute('inputmode', v?'none':'text')); LS.set('hidekb', v); }
+$('#setKb').onchange = applyKb; $('#setSound').onchange = ()=>LS.set('sound', $('#setSound').checked); applyKb();
+$('#userIn').onchange = ()=>{ S.user = $('#userIn').value.trim(); LS.set('user', S.user); };
+$('#adminLink').onclick = e=>{ e.preventDefault(); goTop('admin.html'); };
+
+/* ---------- views */
+function show(id){
+  $('#boot').classList.add('hidden');
+  ['vHome','vWave','vCont'].forEach(v=>$('#'+v).classList.toggle('hidden', v!==id));
+  $('#backBtn').classList.toggle('hidden', id==='vHome');
+  S.view = id; Cam.close(); window.scrollTo(0,0);
+  document.body.classList.toggle('has-bar', id==='vCont');
+}
+$('#backBtn').onclick = ()=>{ S.view==='vCont' ? openWave(S.waveId) : openHome(); };
+
+/* ---------- HOME */
+async function openHome(){
+  show('vHome'); $('#title').textContent = 'Sorting check';
+  $('#userIn').value = S.user;
+  try{
+    const b = await run('getBoot');
+    S.email = b.user; S.waves = b.waves;
+    $('#emailTxt').textContent = b.user ? 'Signed in as '+b.user : '';
+    if(!S.user && b.user){ S.user = b.user.split('@')[0]; $('#userIn').value = S.user; LS.set('user', S.user); }
+  }catch(e){ toast('Could not load waves: '+e.message); }
+  const systems = [...new Set(S.waves.map(w=>w.system))];
+  const prev = LS.get('system','');
+  $('#sysSel').innerHTML = systems.map(s=>`<option ${s===prev?'selected':''}>${esc(s)}</option>`).join('');
+  renderWaves();
+  $('#noWaves').textContent = S.waves.length ? '' : 'No waves loaded yet. Ask admin to import sorting history.';
+}
+$('#refreshBtn').onclick = openHome;
+$('#sysSel').onchange = ()=>{ LS.set('system', $('#sysSel').value); renderWaves(); };
+function renderWaves(){
+  const sys = $('#sysSel').value;
+  $('#waveList').innerHTML = S.waves.filter(w=>w.system===sys).map(w=>{
+    const pct = w.containers ? Math.round(100*w.checked/w.containers) : 0;
+    return `<li class="click ${pct>=100?'st-ok':w.checked?'st-prog':'st-todo'}" data-id="${esc(w.id)}"><div class="grow"><div class="item-title">${esc(w.name)}</div>
+      <div class="muted">${w.containers} containers · ${w.items} items · loaded ${esc(w.created_at)}</div>
+      <div class="progress" style="margin-top:6px"><i style="width:${Math.min(pct,100)}%"></i></div></div>
+      <span class="chip ${pct>=100?'OK':''}">${w.checked}/${w.containers}</span><span class="chev">&#8250;</span></li>`; }).join('');
+  document.querySelectorAll('#waveList li').forEach(li=>li.onclick=()=>{
+    if(!S.user){ toast('Enter your name first'); $('#userIn').focus(); return; }
+    openWave(li.dataset.id);
+  });
+}
+
+/* ---------- WAVE */
+async function loadWaveData(id){
+  if(S.data && S.data.wave.id===id) return;
+  const d = await run('getWaveData', id);
+  const exp = {}, where = {};
+  d.exp.forEach(([c,b,q])=>{ (exp[c]=exp[c]||{})[b]=q; (where[b]=where[b]||[]).push(c); });
+  S.data = { wave:d.wave, exp, where, info:d.info };
+  S.containerSet = new Set(Object.keys(exp));
+}
+async function openWave(id){
+  show('vWave'); S.cont = null; S.waveId = id;
+  $('#contList').innerHTML = '<li class="muted">Loading…</li>';
+  $('#waveBanner').innerHTML = '';
+  try{
+    await loadWaveData(id);
+    $('#title').textContent = S.data.wave.name; $('#wName').textContent = S.data.wave.name; $('#wSys').textContent = S.data.wave.system;
+    await Q.flush(8000);
+    S.ov = await run('getOverview', id);
+  }catch(e){ toast(e.message); if(!S.data) return openHome(); }
+  const fb = S.lastDone; S.lastDone = null;
+  if(fb) $('#waveBanner').innerHTML = `<div class="banner flash ${fb.n?'ERR':'OK'}"><span class="bicon">${fb.n?'!':'&#10003;'}</span><div class="btxt">${esc(fb.c)} done — ${fb.n? fb.n+' discrepanc'+(fb.n>1?'ies':'y') : 'all OK'}<small>Scan the next container</small></div></div>`;
+  if(S.ov){
+    const w = S.ov, pct = w.total_containers ? Math.round(100*w.checked_containers/w.total_containers) : 0;
+    $('#wProg').style.width = Math.min(pct,100)+'%';
+    $('#wChecked').textContent = w.checked_containers+'/'+w.total_containers;
+    $('#wItems').textContent = w.scanned_qty+'/'+w.expected_qty;
+    $('#wIss').textContent = w.discrepancies; $('#wIss').style.color = w.discrepancies ? 'var(--bad)' : 'var(--ok)';
+    $('#wProgTxt').textContent = pct+'% of containers checked';
+    if(pct>=100 && w.total_containers) $('#waveBanner').innerHTML += `<div class="banner OK"><span class="bicon">&#10003;</span><div class="btxt">All containers checked<small>Open the Report</small></div></div>`;
+    renderContList();
+  }
+  $('#contInput').value=''; setTimeout(()=>$('#contInput').focus(), 50);
+}
+$('#reportBtn').onclick = ()=>goTop('report.html?wave='+encodeURIComponent(S.waveId));
+document.querySelectorAll('#cTabs button').forEach(b=>b.onclick=()=>{ S.filter=b.dataset.f; document.querySelectorAll('#cTabs button').forEach(x=>x.classList.toggle('on', x===b)); renderContList(); });
+function renderContList(){
+  const f = S.filter;
+  const list = S.ov.containers.filter(c => f==='all' || (f==='todo' && !c.checked) || (f==='done' && c.checked) || (f==='issue' && c.discrepancies>0 && (c.checked||c.started)));
+  $('#contList').innerHTML = list.map(c=>{
+    const chip = c.checked ? (c.discrepancies ? `<span class="chip bad">${c.discrepancies} issue${c.discrepancies>1?'s':''}</span>` : `<span class="chip OK">OK</span>`)
+             : c.started ? `<span class="chip IN_PROGRESS">in progress</span>` : `<span class="chip">to check</span>`;
+    const st = c.checked ? (c.discrepancies ? 'st-bad' : 'st-ok') : c.started ? 'st-prog' : 'st-todo';
+    return `<li class="click ${st}" data-c="${esc(c.container)}"><div class="grow"><b class="mono" style="font-size:16px">${esc(c.container)}</b>${c.in_history?'':' <span class="chip warn">not in history</span>'}
+      <div class="muted">${c.scanned_qty}/${c.expected_qty} items${c.checked_by?' · '+esc(c.checked_by):''}</div></div>${chip}<span class="chev">&#8250;</span></li>`; }).join('') || '<li class="muted">Nothing here</li>';
+  document.querySelectorAll('#contList li[data-c]').forEach(li=>li.onclick=()=>startContainer(li.dataset.c));
+}
+async function startContainer(code){
+  code = String(code||'').trim().toUpperCase(); $('#contInput').value='';
+  if(!code) return;
+  if(!S.containerSet.has(code) && !(await ask(`Container "${code}" is not in this wave's history.\nCheck it anyway? (all items will count as extra)`))) return;
+  openContainer(code);
+}
+$('#contGo').onclick = ()=>startContainer($('#contInput').value);
+$('#contInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); startContainer($('#contInput').value);} });
+$('#contCam').onclick = ()=>Cam.open('Scan container', code=>{ Cam.close(); startContainer(code); });
+
+/* ---------- CONTAINER */
+async function openContainer(c){
+  show('vCont'); S.cont = c; S.contScans = [];
+  $('#title').textContent = S.data.wave.name + ' · ' + c; $('#cName').textContent = c;
+  setBanner({result:'INFO', msg:'Loading…'}); renderCont();
+  const before = Q.ops.slice();
+  let srv = null;
+  try{ srv = await run('getContainerScans', S.waveId, c); }catch(e){ toast('Offline – showing scans from this device only'); }
+  if(S.cont !== c) return;
+  let list = srv ? srv.scans.map(s=>({id:s.id, barcode:s.barcode})) : [];
+  const seen = new Set(list.map(s=>s.id)), ops = [...before, ...Q.ops.filter(o=>!before.some(b=>b.id===o.id))];
+  for(const op of ops){
+    if(op.wave!==S.waveId || op.container!==c) continue;
+    if(op.type==='scan' && !seen.has(op.id)){ list.push({id:op.id, barcode:op.barcode}); seen.add(op.id); }
+    if(op.type==='void') list = list.filter(s=>s.id!==op.scanId);
+    if(op.type==='reset') list = [];   // a reset clears every scan made before it
+  }
+  S.contScans = list;
+  setBanner(srv && srv.checked ? {result:'INFO', msg:'Already checked — scanning again reopens it'} : {result:'INFO', msg:'Scan items in this container'});
+  renderCont();
+  $('#itemInput').value=''; setTimeout(()=>$('#itemInput').focus(), 50);
+}
+const BICON = {OK:'&#10003;', WRONG:'&#10005;', NOT_IN_WAVE:'?', ERR:'&#10005;', OVER:'!', INFO:'&#8226;'};
+function setBanner(v){
+  const b = $('#contBanner'), r = v.result||'INFO';
+  b.className = 'banner '+r; void b.offsetWidth; if(r!=='INFO') b.classList.add('flash');
+  b.innerHTML = `<span class="bicon">${BICON[r]||'&#8226;'}</span><div class="btxt">${esc(v.msg||'')}${v.barcode?`<small>${esc(v.barcode)}</small>`:''}</div>`;
+}
+function compareLocal(){
+  const e = S.data.exp[S.cont] || {}, s = {};
+  S.contScans.forEach(x=>s[x.barcode]=(s[x.barcode]||0)+1);
+  const keys = [...new Set([...Object.keys(e), ...Object.keys(s)])].sort();
+  const lines = keys.map(bc=>{
+    const eq=e[bc]||0, sq=s[bc]||0;
+    const st = eq && sq===eq ? 'OK' : eq && sq===0 ? 'MISSING' : eq && sq<eq ? 'SHORT' : eq && sq>eq ? 'OVER' : 'EXTRA';
+    const l = {barcode:bc, expected:eq, scanned:sq, status:st, info:S.data.info[bc]||''};
+    if(st==='EXTRA'){ l.belongs_to = (S.data.where[bc]||[]).filter(x=>x!==S.cont); l.not_in_wave = !l.belongs_to.length; }
+    return l;
+  });
+  const cnt = st=>lines.filter(l=>l.status===st).length;
+  const sum = { expected_qty:Object.values(e).reduce((a,b)=>a+b,0), scanned_qty:S.contScans.length, ok:cnt('OK') };
+  sum.discrepancies = lines.length - sum.ok;
+  return {lines, summary:sum};
+}
+const ORDER = {EXTRA:0, MISSING:1, SHORT:2, OVER:3, OK:4};
+function renderCont(){
+  const {lines, summary:s} = compareLocal();
+  $('#sExp').textContent = s.expected_qty; $('#sScan').textContent = s.scanned_qty; $('#sIss').textContent = s.discrepancies;
+  $('#sIss').style.color = s.discrepancies ? 'var(--bad)' : 'var(--ok)';
+  $('#cProg').style.width = (s.expected_qty ? Math.min(100, Math.round(100*s.scanned_qty/s.expected_qty)) : (s.scanned_qty?100:0))+'%';
+  $('#cProgBar').classList.toggle('over', s.scanned_qty > s.expected_qty);
+  $('#cFlag').innerHTML = S.containerSet.has(S.cont) ? '' : '<span class="chip warn">not in history</span>';
+  const showOk = $('#showOk').checked;
+  const vis = lines.filter(l=>showOk || l.status!=='OK').sort((a,b)=>ORDER[a.status]-ORDER[b.status]);
+  $('#lineList').innerHTML = vis.map(l=>{
+    let extra = '';
+    if(l.status==='EXTRA') extra = l.not_in_wave ? 'Not in wave' : 'Belongs to '+l.belongs_to.join(', ');
+    if(l.status==='MISSING') extra = 'Not found in container';
+    if(l.status==='SHORT') extra = `${l.expected-l.scanned} missing`;
+    if(l.status==='OVER') extra = `${l.scanned-l.expected} too many`;
+    const st = l.status==='OK' ? 'st-ok' : (l.status==='SHORT'||l.status==='OVER') ? 'st-prog' : 'st-bad';
+    return `<li class="${st}"><div class="grow">${l.info?`<div class="item-title">${esc(l.info)}</div>`:''}<div class="mono" style="word-break:break-all;font-size:13px">${esc(l.barcode)}</div>
+      <div class="muted">${l.scanned}/${l.expected}${extra?' · '+esc(extra):''}</div></div>
+      <span class="chip ${l.status}">${STATUS_LABEL(l)}</span></li>`; }).join('')
+    || `<li class="muted">${lines.length ? 'No discrepancies yet ('+s.ok+' items OK)' : 'No items'}</li>`;
+  return s;
+}
+$('#showOk').onchange = renderCont;
+
+async function scanItem(code){
+  code = String(code||'').trim().toUpperCase(); $('#itemInput').value='';
+  if(!code) return;
+  if(code===S.cont){ toast('That is this container'); return; }
+  if(S.containerSet.has(code) && !(S.data.where[code])){   // another container label -> finish this one
+    const prev = S.cont, n = complete(); toast(`${prev} done — ${n ? n+' discrepancies' : 'all OK'}`, 3000);
+    S.lastDone = null; openContainer(code); return;
+  }
+  const op = Q.push({type:'scan', wave:S.waveId, container:S.cont, barcode:code});
+  S.contScans.push({id:op.id, barcode:code});
+  const e = (S.data.exp[S.cont]||{})[code]||0, sq = S.contScans.filter(x=>x.barcode===code).length;
+  let v;
+  if(e && sq<=e) v = {result:'OK', msg:`OK ${sq}/${e}`};
+  else if(e) v = {result:'OVER', msg:`Too many: scanned ${sq}, expected ${e}`};
+  else {
+    const el = (S.data.where[code]||[]).filter(x=>x!==S.cont);
+    v = el.length ? {result:'WRONG', msg:'Wrong container! Should be in '+el.slice(0,5).join(', ')} : {result:'NOT_IN_WAVE', msg:"Item not in this wave's history"};
+  }
+  v.barcode = code; setBanner(v);
+  beep(v.result==='OK'?'ok':v.result==='OVER'?'warn':'bad');
+  if(Cam.isOpen) $('#camLast').textContent = (v.result==='OK'?'✓ ':'✗ ')+code+' — '+v.msg;
+  renderCont();
+  if(!Cam.isOpen) $('#itemInput').focus();
+}
+$('#itemGo').onclick = ()=>scanItem($('#itemInput').value);
+$('#itemInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); scanItem($('#itemInput').value);} });
+$('#itemCam').onclick = ()=>Cam.open('Scan items in '+S.cont, code=>scanItem(code), true);
+$('#undoBtn').onclick = ()=>{
+  const last = S.contScans.pop();
+  if(!last){ setBanner({result:'INFO', msg:'Nothing to undo'}); return; }
+  if(!Q.removeIfQueued(last.id)) Q.push({type:'void', wave:S.waveId, container:S.cont, scanId:last.id});
+  setBanner({result:'INFO', msg:'Removed last scan', barcode:last.barcode}); renderCont(); $('#itemInput').focus();
+};
+$('#resetBtn').onclick = async ()=>{
+  if(!(await ask('Clear all scans for '+S.cont+' and rescan?'))) return;
+  S.contScans.forEach(x=>Q.removeIfQueued(x.id));
+  Q.push({type:'reset', wave:S.waveId, container:S.cont});
+  S.contScans = []; setBanner({result:'INFO', msg:'Container scans cleared'}); renderCont(); $('#itemInput').focus();
+};
+function complete(){
+  const s = compareLocal().summary;
+  Q.push({type:'complete', wave:S.waveId, container:S.cont});
+  S.lastDone = {c:S.cont, n:s.discrepancies};
+  beep(s.discrepancies?'warn':'ok');
+  return s.discrepancies;
+}
+$('#doneBtn').onclick = async ()=>{
+  if(!S.contScans.length && !(await ask('No items scanned. Mark container as empty / checked?'))) return;
+  complete(); openWave(S.waveId);
+};
+document.addEventListener('click', e=>{
+  if(e.target.closest('button,a,input,select,label,li.click,#modal')) return;
+  if(S.view==='vCont') $('#itemInput').focus(); else if(S.view==='vWave') $('#contInput').focus();
+});
+
+/* ---------- CAMERA
+   Live mode: video + BarcodeDetector (Android Chrome) or ZXing (iPhone).
+   Photo mode: opens the phone's camera app, then reads the barcode from the photo.
+   Live video can be blocked inside the Google page on some phones -> switch to photo mode. */
+const ZXING_URL = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
+const FORMATS = ['code_128','code_39','code_93','ean_13','ean_8','upc_a','upc_e','itf','qr_code','data_matrix','codabar','pdf417'];
+const Cam = {
+  isOpen:false, stream:null, timer:null, last:'', lastT:0, det:null, zx:null,
+  mode(){ return LS.get('camMode','live'); },
+  setMode(m){ LS.set('camMode', m); $('#setCam').value = m; },
+  open(title, onCode){
+    this.onCode = onCode; this.title = title;
+    if(this.mode()==='photo') return this.photo();      // must stay synchronous (keeps the tap)
+    this.live();
+  },
+  async detector(){
+    if(this.det || this.zx) return;
+    if('BarcodeDetector' in window){
+      try{ const sup = await BarcodeDetector.getSupportedFormats();
+        const f = FORMATS.filter(x=>sup.includes(x)); if(f.length){ this.det = new BarcodeDetector({formats:f}); return; } }catch(e){}
+    }
+    await new Promise((ok,no)=>{ if(window.ZXing) return ok();
+      const sc=document.createElement('script'); sc.src=ZXING_URL; sc.onload=ok; sc.onerror=()=>no(new Error('barcode reader could not load (no internet?)')); document.head.appendChild(sc); });
+    const hints = new Map(); hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    this.zx = new ZXing.MultiFormatReader(); this.zx.setHints(hints);
+  },
+  async decode(src){            // src: canvas or video
+    await this.detector();
+    if(this.det){ const r = await this.det.detect(src); return r.length ? r[0].rawValue : null; }
+    let cv = src;
+    if(src.tagName==='VIDEO'){ cv = $('#camCanvas'); cv.width = src.videoWidth; cv.height = src.videoHeight; cv.getContext('2d').drawImage(src,0,0); }
+    try{ return this.zx.decodeWithState(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(cv)))).getText(); }
+    catch(e){ return null; }
+  },
+  async live(){
+    this.isOpen = true;
+    $('#camTitle').textContent = this.title; $('#camLast').textContent = 'Starting camera…';
+    $('#camPhotoBtn').classList.add('hidden'); $('#cam').classList.remove('hidden');
+    try{
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('camera not available in this browser');
+      const stream = await Promise.race([
+        navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}}),
+        new Promise((_,no)=>setTimeout(()=>no(new Error('timeout')), 6000))]);
+      if(!this.isOpen){ stream.getTracks().forEach(t=>t.stop()); return; }
+      this.stream = stream;
+      const v = $('#camVideo'); v.srcObject = stream; await v.play();
+      await this.detector();
+      $('#camLast').textContent = 'Point at a barcode';
+      const tick = async ()=>{ if(!this.isOpen) return;
+        try{ if(v.videoWidth){ const c = await this.decode(v); if(c) this.hit(c); } }catch(e){}
+        this.timer = setTimeout(tick, this.det ? 150 : 250); };
+      tick();
+    }catch(e){
+      if(this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream=null; }
+      $('#camLast').innerHTML = 'Live camera is blocked on this phone (' + esc(e.name==='NotAllowedError' ? 'no permission' : e.message==='timeout' ? 'camera did not start' : e.message) + ').<br>Use photo mode instead:';
+      $('#camPhotoBtn').classList.remove('hidden');
+    }
+  },
+  photo(){ const f = $('#camFile'); f.value = ''; f.click(); },
+  async fromFile(file){
+    $('#camLast').textContent = 'Reading barcode…';
+    toast('Reading barcode…', 1500);
+    try{
+      let img;
+      try{ img = await createImageBitmap(file, {imageOrientation:'from-image'}); }
+      catch(e){ img = await new Promise((ok,no)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=no; i.src=URL.createObjectURL(file); }); }
+      const cv = $('#camCanvas'), W = img.width, H = img.height;
+      let code = null;
+      for(const max of [1600, 2600, 1000]){             // try a few sizes: barcodes read best at different scales
+        const k = Math.min(1, max/Math.max(W,H)); cv.width = Math.round(W*k); cv.height = Math.round(H*k);
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        code = await this.decode(cv); if(code) break;
+      }
+      if(code){ this.last=''; this.close(); this.onCode(code); }
+      else { beep('bad'); toast('No barcode found in the photo — hold steady, fill the frame with the barcode, good light', 4500); }
+    }catch(e){ toast('Could not read photo: '+e.message, 4000); }
+  },
+  // same barcode is counted again only after it has left the view for 1 s (so 2 identical pieces = show, move away, show)
+  hit(code){ const t = Date.now(), seen = this.lastT; this.lastT = t; if(code===this.last && t-seen<1000) return; this.last=code; this.onCode(code); },
+  close(){
+    this.isOpen=false; clearTimeout(this.timer);
+    if(this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream=null; }
+    $('#cam').classList.add('hidden');
+  }
+};
+$('#camPhotoBtn').onclick = ()=>{ Cam.setMode('photo'); toast('Camera set to photo mode (change in Settings)', 3000); Cam.photo(); };
+$('#camFile').onchange = ()=>{ const f = $('#camFile').files[0]; if(f) Cam.fromFile(f); };
+$('#setCam').value = Cam.mode();
+$('#setCam').onchange = ()=>Cam.setMode($('#setCam').value);
+$('#camClose').onclick = ()=>Cam.close();
+
+badge(); Q.kick();
+const startWave = (new URLSearchParams(location.search).get('wave')||'').replace(/[^A-Za-z0-9_-]/g,'');
+if(startWave) openWave(startWave); else openHome();
+</script>
+</body>
+</html>

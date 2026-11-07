@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#5F7A61">
+<title>SortCheck · Forwardlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap">
+<style>
+/* Forwardlog style: green #5F7A61, grey #6B6B6B, Montserrat */
+:root{
+  --brand:#5F7A61;--brand-dk:#475C4A;--brand-lt:#E9F0E9;--brand-ink:#fff;
+  --bg:#F3F5F2;--card:#fff;--ink:#262A27;--grey:#6B6B6B;--muted:#7A807B;--line:#E2E7E2;
+  --ok:#2E7D4F;--ok-bg:#E2F3E8;--bad:#C0392B;--bad-bg:#FBE4E1;--warn:#B7791F;--warn-bg:#FDF1DC;--info-bg:#EEF2EE;
+  --radius:14px;--shadow:0 1px 2px rgba(0,0,0,.04),0 4px 14px rgba(40,60,45,.06);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--brand-dk)}
+/* header */
+header.top{position:sticky;top:0;z-index:20;background:#fff;border-bottom:3px solid var(--brand);padding:8px 12px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+header.top .logo{height:58px;width:auto;margin:-4px auto -4px 0;display:block;flex:0 0 auto}
+header.top .htitle{order:3;flex:1 0 100%;min-width:0;display:flex;align-items:baseline;gap:8px;line-height:1.2;padding:5px 2px 0;border-top:1px solid var(--line)}
+header.top .app{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--brand);text-transform:uppercase}
+header.top h1,header.top .sub{font-size:15px;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+header.top button{background:var(--brand-lt);color:var(--brand-dk);border:0;border-radius:10px;padding:7px 11px;font-size:16px;font-weight:700}
+.sync{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--brand-lt);color:var(--brand-dk);white-space:nowrap}
+.sync.err{background:var(--bad-bg);color:var(--bad)}
+main{max-width:900px;margin:0 auto;padding:14px 12px 24px}
+footer.tag{text-align:center;color:var(--muted);font-size:11px;letter-spacing:.4px;padding:4px 0 22px}
+footer.tag b{color:var(--brand)}
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h2{font-size:13px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.8px;color:var(--grey);font-weight:700}
+.card.hero{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dk) 100%);color:#fff;border:0}
+.card.hero .muted{color:rgba(255,255,255,.8)}
+.card.hero input{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35);color:#fff}
+.card.hero input::placeholder{color:rgba(255,255,255,.7)}
+.card.hero label{color:rgba(255,255,255,.85)}
+.btn.acct{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.4)}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 5px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1.5px solid #CBD3CB;border-radius:11px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(95,122,97,.22)}
+input.scan{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:21px;letter-spacing:.5px;padding:14px;border-width:2px}
+button{font:inherit;cursor:pointer}
+.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-align:center;border:0;border-radius:11px;padding:12px 16px;font-size:15px;font-weight:700;background:var(--brand);color:var(--brand-ink);transition:transform .05s,filter .15s}
+.btn:active{transform:scale(.97);filter:brightness(.93)}
+.btn.sec{background:#EDF1ED;color:var(--ink)}
+.btn.ok{background:var(--ok)}
+.btn.bad{background:var(--bad)}
+.btn.sm{padding:8px 12px;font-size:13px}
+.btn.icon{width:52px;padding:12px 0;font-size:20px}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row > *{flex:1}
+.row > .nogrow{flex:0 0 auto}
+.muted{color:var(--muted);font-size:12.5px}
+.grow{flex:1;min-width:0}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,monospace}
+/* lists */
+.list{list-style:none;margin:0;padding:0}
+.list li{border-bottom:1px solid var(--line);padding:12px 6px 12px 12px;display:flex;align-items:center;gap:10px;border-left:4px solid transparent}
+.list li:last-child{border-bottom:0}
+.list li.click{cursor:pointer;border-radius:8px}
+.list li.click:active{background:#F1F5F1}
+.list li.st-ok{border-left-color:var(--ok)}
+.list li.st-bad{border-left-color:var(--bad)}
+.list li.st-prog{border-left-color:var(--warn)}
+.list li.st-todo{border-left-color:#CBD3CB}
+.list .chev{color:#B5BDB6;font-size:20px;flex:0 0 auto}
+.item-title{font-weight:600;font-size:14px}
+.chip{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:4px 9px;border-radius:999px;background:#ECEFEC;color:#4B524C;white-space:nowrap;text-transform:uppercase}
+.chip.OK,.chip.CHECKED{background:var(--ok-bg);color:var(--ok)}
+.chip.MISSING,.chip.EXTRA,.chip.WRONG,.chip.NOT_IN_WAVE,.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.SHORT,.chip.OVER,.chip.warn,.chip.IN_PROGRESS{background:var(--warn-bg);color:var(--warn)}
+.chip.brand{background:var(--brand-lt);color:var(--brand-dk)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#F7F9F7;border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.stat b{display:block;font-size:26px;line-height:1.1;font-weight:800}
+.stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+/* result banner */
+.banner{display:flex;align-items:center;gap:12px;border-radius:var(--radius);padding:14px 16px;font-size:17px;font-weight:700;margin-bottom:12px;text-align:left;border:2px solid transparent}
+.banner .bicon{flex:0 0 40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;background:var(--muted)}
+.banner .btxt{flex:1;min-width:0}
+.banner small{display:block;font-size:13px;font-weight:600;margin-top:2px;font-family:ui-monospace,Consolas,monospace;opacity:.85;word-break:break-all}
+.banner.OK{background:var(--ok-bg);color:var(--ok);border-color:rgba(46,125,79,.25)}.banner.OK .bicon{background:var(--ok)}
+.banner.WRONG,.banner.NOT_IN_WAVE,.banner.ERR{background:var(--bad-bg);color:var(--bad);border-color:rgba(192,57,43,.25)}
+.banner.WRONG .bicon,.banner.NOT_IN_WAVE .bicon,.banner.ERR .bicon{background:var(--bad)}
+.banner.OVER{background:var(--warn-bg);color:var(--warn);border-color:rgba(183,121,31,.25)}.banner.OVER .bicon{background:var(--warn)}
+.banner.INFO{background:var(--info-bg);color:var(--brand-dk)}.banner.INFO .bicon{background:var(--brand)}
+.banner.flash{animation:flash .35s ease-out}
+@keyframes flash{from{transform:scale(1.03);filter:brightness(1.08)}to{transform:none}}
+/* progress */
+.progress{height:10px;background:#E4E9E4;border-radius:99px;overflow:hidden}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),#7FA083);border-radius:99px;transition:width .3s}
+.progress.over > i{background:var(--warn)}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--grey)}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.tablewrap{overflow-x:auto}
+details.card summary{cursor:pointer;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--grey);list-style:none}
+details.card summary::after{content:"▾";float:right;color:var(--muted)}
+details[open].card summary::after{content:"▴"}
+/* sticky action bar on container screen */
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:15;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;box-shadow:0 -4px 14px rgba(0,0,0,.06)}
+.actionbar .btn{flex:1}
+.actionbar .btn.ok{flex:1.4}
+body.has-bar main{padding-bottom:90px}
+body.has-bar footer.tag{padding-bottom:96px}
+/* camera */
+#cam{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
+#cam video{flex:1;width:100%;object-fit:cover;min-height:0}
+#cam .camhud{position:absolute;left:0;right:0;top:0;padding:12px;display:flex;gap:8px;align-items:center;color:#fff;background:linear-gradient(#000a,#0000)}
+#cam .camhud .grow{font-weight:700}
+#cam .reticle{position:absolute;left:10%;right:10%;top:35%;height:22%;border:3px solid rgba(255,255,255,.75);border-radius:14px;pointer-events:none;box-shadow:0 0 0 2000px rgba(0,0,0,.25)}
+#cam .camlast{position:absolute;bottom:0;left:0;right:0;padding:16px 14px calc(16px + env(safe-area-inset-bottom));text-align:center;font-weight:700;font-size:17px;color:#fff;background:rgba(0,0,0,.65)}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;z-index:60;font-size:14px;font-weight:600;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.loading{padding:40px;text-align:center;color:var(--muted)}
+@media print{header.top button,.noprint,.sync{display:none!important}body{background:#fff}.card{border:0;padding:0;box-shadow:none}}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <button id="back">&#8249;</button>
+  <img class="logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Forwardlog" onerror="this.style.display='none'">
+  <div class="htitle"><span class="app">SortCheck</span><h1>Admin</h1></div>
+</header>
+<main>
+  <div class="card" id="infoCard"><div class="muted">Loading…</div></div>
+
+  <div class="card">
+    <h2>1 · Import sorting history</h2>
+    <div class="row">
+      <div><label>System / project</label><input id="iSys" list="sysList" placeholder="e.g. Shah Alam Wheel Sorter"><datalist id="sysList"></datalist></div>
+      <div><label>Wave name</label><input id="iWave" placeholder="e.g. 2026-11-07 Wave 3"></div>
+    </div>
+    <label>A) File in the <b>SortCheck Inbox</b> Drive folder</label>
+    <div class="row"><select id="inboxSel"><option value="">Loading…</option></select>
+      <button class="btn sec nogrow" id="inboxRefresh">&#8635;</button><button class="btn nogrow" id="inboxLoad">Load</button></div>
+    <label>B) …or upload from this computer (.csv / .xlsx)</label>
+    <input type="file" id="iFile" accept=".csv,.txt,.xlsx,.xlsm">
+    <div id="mapBox" class="hidden">
+      <p class="muted" id="srcName"></p>
+      <label class="row" style="color:var(--ink)"><input type="checkbox" id="hasHdr" class="nogrow" style="width:20px;height:20px" checked> <span>First row is header</span></label>
+      <div class="row">
+        <div><label>Container column (basket/tote/chute) *</label><select id="mCont"></select></div>
+        <div><label>Item barcode column *</label><select id="mBar"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Quantity column (optional — else 1 per row)</label><select id="mQty"></select></div>
+        <div><label>Wave no. column (optional — one wave per value)</label><select id="mWave"></select></div>
+      </div>
+      <label>Show on PDA / report (order no., SKU name, serial no…)</label>
+      <div id="mInfoBox" class="row" style="gap:2px 16px"></div>
+      <div class="row">
+        <div><label>Filter column (optional, e.g. only sort-success rows)</label><select id="mFilt"></select></div>
+        <div><label>…keep rows where value equals</label><input id="mFiltVal" placeholder="e.g. SUCCESS"></div>
+      </div>
+      <label>If wave already exists</label>
+      <select id="iMode"><option value="replace">Replace its history (keep scans)</option><option value="append">Append rows</option></select>
+      <p class="muted" id="prevInfo"></p>
+      <div class="tablewrap"><table id="prev"></table></div>
+      <button class="btn" id="iGo" style="margin-top:10px;width:100%">Import</button>
+      <p class="muted" id="iProg"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Waves loaded</h2>
+    <div class="tablewrap"><table><thead><tr><th>System</th><th>Wave</th><th>Containers</th><th>Items</th><th>Checked</th><th></th></tr></thead><tbody id="wRows"><tr><td colspan="6" class="muted">Loading…</td></tr></tbody></table></div>
+    <p class="muted">Flush = save the final report as a Google Sheet in <b>SortCheck Reports</b>, then delete the wave (history + scans) so the next wave can be checked.</p>
+  </div>
+
+  <div class="card">
+    <h2>Archived reports</h2>
+    <ul class="list" id="arch"><li class="muted">Loading…</li></ul>
+  </div>
+</main>
+<footer class="tag"><b>FORWARDLOG</b> · Endless Flexibility In Automation</footer>
+
+<div id="modal" class="hidden" style="position:fixed;inset:0;background:#0007;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div class="card" style="max-width:440px;width:100%;margin:0">
+    <p id="modalMsg" style="margin-top:0;white-space:pre-line"></p>
+    <input id="modalIn" placeholder="Type FLUSH">
+    <div class="row" style="margin-top:10px"><button class="btn sec" id="modalNo">Cancel</button><button class="btn bad" id="modalYes">Flush</button></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('sc_'+k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('sc_'+k, JSON.stringify(v)); }catch(e){} }
+};
+/** Calls the SortCheck server (Google Apps Script JSON API). No Google cookies are sent. */
+const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec';
+async function run(fn, ...args){
+  let r;
+  try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args}), redirect:'follow', credentials:'omit'}); }
+  catch(e){ throw new Error('No connection to the SortCheck server – check internet'); }
+  let j; try{ j = await r.json(); }catch(e){ throw new Error('Unexpected reply from server (HTTP '+r.status+')'); }
+  if(!j.ok) throw new Error(j.error || 'Server error');
+  return j.result;
+}
+function toast(msg, ms=2500){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), ms); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+function goTop(url){ location.href = url; }
+// Google account switching. Apps Script web apps fail ("unable to open the file") when several Google
+// accounts are signed in at once, so switching = sign out of all accounts, then sign in with one.
+function switchAccount(base){ goTop('https://accounts.google.com/Logout?continue=' + encodeURIComponent('https://accounts.google.com/ServiceLogin?continue=' + encodeURIComponent(base))); }
+function signOutGoogle(base){ switchAccount(base); }
+const STATUS_LABEL = l => l.status==='EXTRA' ? (l.not_in_wave ? 'NOT IN WAVE' : 'WRONG') : l.status;
+</script>
+<script>
+(function(){ const im = document.querySelector('header .logo'); if(!im) return;
+  const c = LS.get('logo',''); if(c) im.src = c;
+  run('getLogo').then(u=>{ if(u && u!==c){ im.src = u; LS.set('logo', u); } }).catch(()=>{});
+})();
+</script>
+
+<script>
+const BASE = new URL('./', location.href).href;
+$('#back').onclick = ()=>goTop(BASE);
+let ROWS = [];
+let PIN = LS.get('adminpin', '');
+
+async function loadInfo(){
+  try{
+    const i = await run('getAdminInfo', PIN);
+    if(!i.isAdmin){
+      $('#infoCard').innerHTML = `<h2>Admin PIN</h2><div class="muted" style="margin-bottom:8px">${i.pinRequired ? 'Enter the admin PIN to import and flush waves.' : 'Your account is not on the admin list.'}</div>
+        ${i.pinRequired ? '<div class="row"><input id="pinIn" type="password" inputmode="numeric" placeholder="Admin PIN"><button class="btn nogrow" id="pinGo">Unlock</button></div>' : ''}`;
+      if(i.pinRequired){
+        const go = async ()=>{ PIN = $('#pinIn').value.trim(); LS.set('adminpin', PIN); if(await loadInfo()) loadInbox(); else toast('Wrong PIN'); };
+        $('#pinGo').onclick = go; $('#pinIn').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+      }
+      return false;
+    }
+    $('#infoCard').innerHTML = `<div class="row"><div class="grow"><b>Admin access</b>
+      <div class="muted">${i.pinRequired ? 'Unlocked with admin PIN' : i.user ? 'Signed in as '+esc(i.user) : ''}</div></div>
+      ${i.pinRequired ? '<button class="btn sec sm nogrow" id="lockBtn">Lock</button>' : ''}</div>
+      <div class="row" style="margin-top:8px">
+        <a class="btn sec sm" href="${esc(i.sheet)}" target="_blank">Open data sheet</a>
+        ${i.inbox?`<a class="btn sec sm" href="${esc(i.inbox)}" target="_blank">Inbox folder</a>`:''}
+        ${i.reports?`<a class="btn sec sm" href="${esc(i.reports)}" target="_blank">Reports folder</a>`:''}
+        <button class="btn sec sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(BASE);toast('Engineer link copied')">Copy engineer link</button>
+      </div>`;
+    if($('#lockBtn')) $('#lockBtn').onclick = ()=>{ PIN=''; LS.set('adminpin',''); loadInfo(); $('#inboxSel').innerHTML='<option value="">(locked)</option>'; };
+    return true;
+  }catch(e){ $('#infoCard').innerHTML = `<b style="color:var(--bad)">${esc(e.message)}</b>`; return false; }
+}
+
+/* ---------- sources */
+async function loadInbox(){
+  try{
+    const f = await run('listInbox', PIN);
+    $('#inboxSel').innerHTML = f.length ? f.map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · ${esc(x.updated)}</option>`).join('') : '<option value="">(Inbox is empty)</option>';
+  }catch(e){ $('#inboxSel').innerHTML = `<option value="">${esc(e.message)}</option>`; }
+}
+$('#inboxRefresh').onclick = loadInbox;
+$('#inboxLoad').onclick = async ()=>{
+  const id = $('#inboxSel').value; if(!id) return toast('Pick a file');
+  $('#inboxLoad').disabled = true;
+  try{
+    const r = await run('readInboxFile', id, PIN);
+    if(r.base64){ const wb = XLSX.read(r.base64, {type:'base64'}); ROWS = sheetRows(wb); } else ROWS = r.rows;
+    useRows(r.name);
+  }catch(e){ toast(e.message); }
+  $('#inboxLoad').disabled = false;
+};
+$('#iFile').onchange = async ()=>{
+  const f = $('#iFile').files[0]; if(!f) return;
+  try{
+    if(/\.(xlsx|xlsm)$/i.test(f.name)){ const wb = XLSX.read(await f.arrayBuffer(), {type:'array'}); ROWS = sheetRows(wb); }
+    else ROWS = parseCSV(await f.text());
+    useRows(f.name);
+  }catch(e){ toast('Could not read file: '+e.message); }
+};
+function sheetRows(wb){
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''}).filter(r=>r.some(c=>String(c).trim()));
+}
+function parseCSV(text){
+  text = text.replace(/^﻿/, '');
+  const first = text.split(/\r?\n/)[0];
+  const d = [',',';','\t','|'].sort((a,b)=>first.split(b).length-first.split(a).length)[0];
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else if(ch==='"') q = true;
+    else if(ch===d){ row.push(cur); cur=''; }
+    else if(ch==='\n' || ch==='\r'){ if(ch==='\r' && text[i+1]==='\n') i++; row.push(cur); rows.push(row); row=[]; cur=''; }
+    else cur += ch;
+  }
+  if(cur!=='' || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(c=>String(c).trim()));
+}
+
+/* ---------- mapping */
+// Standard SortCheck import template:
+// Wave No, Container No, Order No, SKU Name, Serial No, Barcode, Quantity
+const GUESS = {
+  mCont:[/^container( ?no\.?)?$/i, /chute|tote|basket|container|grid|slot|dest|bin|box|格口|容器|箱/i],
+  mBar:[/^barcode$/i, /barcode|bar code|条码/i, /tracking|waybill|awb|parcel|单号/i, /item code|^sku$|code/i],
+  mQty:[/^(qty|quantity)$/i, /quantity|qty|数量|pcs/i],
+  mWave:[/^wave( ?no\.?)?$/i, /wave|波次/i],
+  mFilt:[/status|result|状态/i] };
+const INFO_RE = /order|sku|name|desc|serial|s\/n|订单|品名/i;
+function guess(hdr, id, taken){
+  for(const re of GUESS[id]){ const i = hdr.findIndex((h,k)=>!taken.includes(k) && re.test(String(h).trim())); if(i>=0) return i; }
+  return -1;
+}
+let HDR = [];
+function useRows(name){
+  if(!ROWS.length) return toast('File is empty');
+  $('#srcName').textContent = 'Source: '+name;
+  const base = name.replace(/\.[^.]+$/,'');
+  if(!$('#iSys').value && base.includes('__')) $('#iSys').value = base.split('__')[0].replace(/_/g,' ').trim();
+  buildMap();
+  if(!$('#iWave').value && $('#mWave').value==='') $('#iWave').value = base.includes('__') ? base.split('__').slice(1).join(' ') : base;
+}
+$('#hasHdr').onchange = buildMap;
+$('#mWave').onchange = ()=>waveHint();
+function waveHint(){
+  const on = $('#mWave').value!=='';
+  $('#iWave').placeholder = on ? '(taken from the Wave No column)' : 'e.g. 2026-11-07 Wave 3';
+  if(on) $('#iWave').value = '';
+}
+function buildMap(){
+  const width = Math.max(...ROWS.slice(0,50).map(r=>r.length));
+  const hasHdr = $('#hasHdr').checked;
+  const hdr = hasHdr ? ROWS[0].map((h,i)=>String(h||'').trim()||('Column '+(i+1))) : Array.from({length:width},(_,i)=>'Column '+(i+1));
+  while(hdr.length < width) hdr.push('Column '+(hdr.length+1));
+  HDR = hdr;
+  const taken = [];
+  for(const id of ['mCont','mBar','mQty','mWave','mFilt']){
+    const optional = !['mCont','mBar'].includes(id);
+    $('#'+id).innerHTML = (optional?'<option value="">— none —</option>':'') + hdr.map((h,i)=>`<option value="${i}">${esc(h)}</option>`).join('');
+    const g = hasHdr ? guess(hdr, id, taken) : -1;
+    if(g>=0){ $('#'+id).value = String(g); if(id!=='mFilt') taken.push(g); }
+  }
+  if($('#mBar').value===$('#mCont').value && width>1) $('#mBar').value = String((+$('#mCont').value+1)%width);
+  $('#mInfoBox').innerHTML = hdr.map((h,i)=>`<label class="nogrow row" style="margin:0;color:var(--ink);font-size:14px"><input type="checkbox" class="nogrow infoCol" value="${i}" style="width:18px;height:18px" ${hasHdr && !taken.includes(i) && INFO_RE.test(h)?'checked':''}> ${esc(h)}</label>`).join('');
+  waveHint();
+  const body = hasHdr ? ROWS.slice(1) : ROWS;
+  const wi = $('#mWave').value;
+  const waves = wi==='' ? [] : [...new Set(body.map(r=>String(r[+wi]??'').trim()).filter(Boolean))];
+  $('#prevInfo').textContent = body.length+' data rows' + (waves.length ? ' · '+waves.length+' wave(s): '+waves.slice(0,6).join(', ')+(waves.length>6?'…':'') : '') + '. Preview:';
+  $('#prev').innerHTML = `<thead><tr>${hdr.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${body.slice(0,5).map(r=>`<tr>${hdr.map((_,i)=>`<td>${esc(r[i])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  $('#mapBox').classList.remove('hidden'); $('#iProg').textContent = '';
+}
+$('#iGo').onclick = async ()=>{
+  const sys=$('#iSys').value.trim(), waveIn=$('#iWave').value.trim(), wi=$('#mWave').value;
+  if(!sys) return toast('Enter the system / project');
+  if(wi==='' && !waveIn) return toast('Enter a wave name or choose the Wave no. column');
+  const ci=+$('#mCont').value, bi=+$('#mBar').value;
+  const qi=$('#mQty').value, fi=$('#mFilt').value, fv=$('#mFiltVal').value.trim().toUpperCase();
+  const infoCols = [...document.querySelectorAll('.infoCol:checked')].map(x=>+x.value);
+  let body = $('#hasHdr').checked ? ROWS.slice(1) : ROWS;
+  if(fi!=='' && fv) body = body.filter(r=>String(r[+fi]??'').trim().toUpperCase()===fv);
+  const info = r => infoCols.map(i=>{ const v=String(r[i]??'').trim(); return v ? (/serial|s\/n/i.test(HDR[i]) ? 'SN '+v : v) : ''; }).filter(Boolean).join(' · ');
+  const groups = new Map();
+  for(const r of body){
+    const w = wi==='' ? waveIn : String(r[+wi]??'').trim();
+    if(!w) continue;
+    if(!groups.has(w)) groups.set(w, []);
+    groups.get(w).push({container:r[ci], barcode:r[bi], qty: qi===''?1:r[+qi], info: info(r)});
+  }
+  if(!groups.size) return toast('No rows left after filter');
+  $('#iGo').disabled = true;
+  const done = [];
+  try{
+    const CH = 4000;
+    for(const [wave, rows] of groups){
+      let imported = 0, skipped = 0;
+      for(let i=0;i<rows.length;i+=CH){
+        $('#iProg').textContent = `Importing ${wave}: ${Math.min(i+CH, rows.length)} / ${rows.length}…`;
+        const j = await run('importRows', sys, wave, rows.slice(i,i+CH), i===0 ? $('#iMode').value : 'append', PIN);
+        imported += j.imported; skipped += j.skipped;
+      }
+      done.push(`${wave}: ${imported} rows${skipped?' ('+skipped+' skipped – blank container/barcode)':''}`);
+    }
+    $('#iProg').textContent = `✓ Imported into ${sys} → ` + done.join(' · ');
+    toast('Import done'); ROWS=[]; $('#iFile').value=''; loadWaves();
+  }catch(e){ $('#iProg').textContent = 'Error: '+e.message; }
+  $('#iGo').disabled = false;
+};
+
+/* ---------- waves / flush */
+function askFlush(name){
+  return new Promise(res=>{
+    $('#modalMsg').textContent = `Flush wave "${name}"?\nThe final report is saved to Drive first, then history and scans are deleted.\nType FLUSH to confirm.`;
+    $('#modalIn').value=''; $('#modal').classList.remove('hidden'); setTimeout(()=>$('#modalIn').focus(),30);
+    const done = v=>{ $('#modal').classList.add('hidden'); res(v); };
+    $('#modalYes').onclick = ()=>done($('#modalIn').value.trim().toUpperCase()==='FLUSH');
+    $('#modalNo').onclick = ()=>done(false);
+  });
+}
+async function loadWaves(){
+  let w = [];
+  try{ w = await run('listWaves'); }catch(e){ $('#wRows').innerHTML = `<tr><td colspan="6">${esc(e.message)}</td></tr>`; return; }
+  $('#sysList').innerHTML = [...new Set(w.map(x=>x.system))].map(s=>`<option value="${esc(s)}">`).join('');
+  $('#wRows').innerHTML = w.map(x=>`<tr><td>${esc(x.system)}</td><td><b>${esc(x.name)}</b><div class="muted">${esc(x.created_at)}</div></td><td>${x.containers}</td><td>${x.items}</td><td>${x.checked}/${x.containers}</td>
+    <td style="white-space:nowrap"><button class="btn sec sm" data-rep="${esc(x.id)}">Report</button> <button class="btn bad sm" data-flush="${esc(x.id)}" data-name="${esc(x.name)}">Flush</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No waves</td></tr>';
+  document.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>goTop('report.html?wave='+encodeURIComponent(b.dataset.rep)));
+  document.querySelectorAll('[data-flush]').forEach(b=>b.onclick=async()=>{
+    if(!(await askFlush(b.dataset.name))) return;
+    b.disabled = true; b.textContent = 'Flushing…';
+    try{ const r = await run('flushWave', b.dataset.flush, PIN); toast('Flushed. Report saved: '+r.name, 4000); loadWaves(); loadArch(); }
+    catch(e){ toast(e.message, 5000); b.disabled=false; b.textContent='Flush'; }
+  });
+}
+async function loadArch(){
+  try{
+    const f = await run('listReports');
+    $('#arch').innerHTML = f.map(x=>`<li><a href="${esc(x.url)}" target="_blank">${esc(x.name)}</a></li>`).join('') || '<li class="muted">None yet</li>';
+  }catch(e){ $('#arch').innerHTML = `<li>${esc(e.message)}</li>`; }
+}
+loadInfo().then(ok=>{ if(ok) loadInbox(); else $('#inboxSel').innerHTML='<option value="">(enter admin PIN)</option>'; }); loadWaves(); loadArch();
+</script>
+</body>
+</html>
