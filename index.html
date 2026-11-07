@@ -28,6 +28,15 @@ header.top .htitle{order:3;flex:1 0 100%;min-width:0;display:flex;align-items:ba
 header.top .app{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--brand);text-transform:uppercase}
 header.top h1,header.top .sub{font-size:15px;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
 header.top button{background:var(--brand-lt);color:var(--brand-dk);border:0;border-radius:10px;padding:7px 11px;font-size:16px;font-weight:700}
+/* account chip (top right), same as the Progress portal */
+header.top .who{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);white-space:nowrap;min-width:0}
+header.top .who img{width:28px;height:28px;border-radius:50%;flex:0 0 auto}
+header.top .who .who-txt{display:grid;line-height:1.2;min-width:0}
+header.top .who b{font-weight:600;color:var(--ink);max-width:170px;overflow:hidden;text-overflow:ellipsis}
+header.top .who small{font-size:11px;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+header.top .who button{font-size:13px;padding:7px 11px}
+@media (max-width:560px){header.top .who .who-txt{display:none}}
+@media print{header.top .who{display:none!important}}
 .sync{font-size:11px;font-weight:600;padding:4px 9px;border-radius:99px;background:var(--brand-lt);color:var(--brand-dk);white-space:nowrap}
 .sync.err{background:var(--bad-bg);color:var(--bad)}
 main{max-width:900px;margin:0 auto;padding:14px 12px 24px}
@@ -262,6 +271,7 @@ body.has-bar footer.tag{padding-bottom:96px}
     <div class="muted" style="margin:4px 0 18px;font-size:13.5px">Sign in with your <b>@forwardlogauto.com</b> Google account</div>
     <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px"></div>
     <div id="loginErr" style="color:var(--bad);font-size:13px;font-weight:600;margin-top:12px"></div>
+    <button type="button" id="loginCancel" class="btn sec sm hidden" style="margin-top:14px" onclick="$('#loginWall').classList.add('hidden');AUTH.waiters=[]">Not now</button>
   </div>
 </div>
 <script>
@@ -287,7 +297,29 @@ function onGoogleCredential(resp){
   AUTH.token = resp.credential; AUTH.exp = p.exp*1000; AUTH.email = p.email;
   LS.set('idtok', AUTH.token); LS.set('idexp', AUTH.exp); LS.set('idemail', AUTH.email);
   $('#loginWall').classList.add('hidden'); $('#loginErr').textContent = '';
+  const u = $('#userIn'); if(u && !u.value.trim()){ u.value = niceName(AUTH.email); u.dispatchEvent(new Event('change')); }
+  whoRender();
   const w = AUTH.waiters; AUTH.waiters = []; w.forEach(f=>f());
+}
+/* ---------- account chip, top right (same as the Progress portal) ---------- */
+const IN_APP = /SortCheckApp/.test(navigator.userAgent);   // Google blocks sign-in inside the Android app
+function niceName(email){ return String(email||'').split('@')[0].split(/[._-]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' '); }
+function avatarFor(name){
+  const ini = (String(name).match(/\b\w/g) || ['?']).slice(0,2).join('').toUpperCase();
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="20" fill="#E9F0E9"/><text x="20" y="25" font-size="14" text-anchor="middle" fill="#475C4A" font-family="Arial" font-weight="700">'+ini+'</text></svg>');
+}
+function whoRender(){
+  const h = document.querySelector('header.top'); if(!h) return;
+  let w = $('#who'); if(!w){ w = document.createElement('span'); w.id = 'who'; w.className = 'who'; const sb = $('#syncBadge'); sb ? h.insertBefore(w, sb) : h.appendChild(w); }
+  if(authOk()){
+    const n = niceName(AUTH.email);
+    w.innerHTML = '<img src="'+avatarFor(n)+'" alt=""><span class="who-txt"><b>'+esc(n)+'</b><small>'+esc(AUTH.email)+'</small></span><button type="button" id="signOutBtn">Sign out</button>';
+    w.title = 'Signed in as ' + AUTH.email;
+    $('#signOutBtn').onclick = ()=>{ if(confirm('Sign out of SortCheck on this device?')) signOut(); };
+  } else if(!IN_APP){
+    w.innerHTML = '<button type="button" id="signInBtn">Sign in</button>'; w.title = 'Sign in with your @'+DOMAIN+' Google account';
+    $('#signInBtn').onclick = ()=>needLogin(true);
+  } else w.innerHTML = '';
 }
 let gsiReady = null;
 function loadGsi(){
@@ -299,9 +331,10 @@ function loadGsi(){
     document.head.appendChild(sc);
   });
 }
-function needLogin(){
+function needLogin(optional){
   return new Promise(res=>{
     AUTH.waiters.push(res);
+    $('#loginCancel').classList.toggle('hidden', !optional);
     $('#loginWall').classList.remove('hidden');
     loadGsi().then(()=>{
       google.accounts.id.renderButton($('#gsiBtn'), { theme:'outline', size:'large', text:'signin_with', shape:'pill', width:280 });
@@ -310,8 +343,8 @@ function needLogin(){
   });
 }
 function signOut(){
-  ['idtok','idexp','idemail'].forEach(k=>LS.set(k, ''));
-  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  const e = AUTH.email; ['idtok','idexp','idemail'].forEach(k=>LS.set(k, ''));
+  try{ google.accounts.id.disableAutoSelect(); if(e) google.accounts.id.revoke(e, ()=>{}); }catch(x){}
   location.reload();
 }
 async function run(fn, ...args){
@@ -340,6 +373,9 @@ function signOutGoogle(base){ switchAccount(base); }
 const STATUS_LABEL = l => l.status==='EXTRA' ? (l.not_in_wave ? 'NOT IN WAVE' : 'WRONG') : l.status;
 </script>
 <script>
+whoRender();
+// signed in before but the 1-hour token ran out: renew quietly in the background
+if(AUTH.email && !authOk() && !IN_APP) loadGsi().then(()=>google.accounts.id.prompt()).catch(()=>{});
 (function(){ const ims = [document.querySelector('header .logo'), $('#loginLogo')].filter(Boolean);
   const c = LS.get('logo',''); if(c) ims.forEach(i=>i.src = c);
   run('getLogo').then(u=>{ if(u && u!==c){ ims.forEach(i=>i.src = u); LS.set('logo', u); } }).catch(()=>{});
