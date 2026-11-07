@@ -144,7 +144,7 @@ body.has-bar footer.tag{padding-bottom:96px}
       <div class="muted" style="margin-top:2px">Pick a wave, scan each chute / box / tote, then every item inside.</div>
       <label for="userIn">Your name / staff ID</label>
       <input id="userIn" placeholder="e.g. Ali" autocomplete="off">
-      <div class="muted" id="emailTxt" style="margin-top:5px"></div>
+      <div class="row" style="margin-top:6px"><div class="muted grow" id="emailTxt"></div><a href="#" class="nogrow" onclick="signOut();return false" style="color:#fff;font-size:12.5px;font-weight:600">Sign out</a></div>
     </div>
     <div class="card">
       <div class="row" style="margin-bottom:4px"><h2 class="grow" style="margin:0">Select wave</h2>
@@ -252,6 +252,15 @@ body.has-bar footer.tag{padding-bottom:96px}
 <input type="file" id="camFile" accept="image/*" capture="environment" style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px">
 <canvas id="camCanvas" style="display:none"></canvas>
 
+<div id="loginWall" class="hidden" style="position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="max-width:380px;width:100%;text-align:center;padding:26px 20px">
+    <img id="loginLogo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Forwardlog" style="height:64px;max-width:100%;margin:0 auto 12px;display:block">
+    <div style="font-size:21px;font-weight:800">SortCheck</div>
+    <div class="muted" style="margin:4px 0 18px;font-size:13.5px">Sign in with your <b>@forwardlogauto.com</b> Google account</div>
+    <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+    <div id="loginErr" style="color:var(--bad);font-size:13px;font-weight:600;margin-top:12px"></div>
+  </div>
+</div>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -259,15 +268,62 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem('sc_'+k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem('sc_'+k, JSON.stringify(v)); }catch(e){} }
 };
-/** Calls the SortCheck server (Google Apps Script JSON API). No Google cookies are sent. */
-const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec';
+/* ---------- Google sign-in (@forwardlogauto.com only) + calls to the SortCheck server ---------- */
+const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec', CLIENT_ID = '91172054296-efavj9to958vrqkdk67pa96fo82466gk.apps.googleusercontent.com', DOMAIN = 'forwardlogauto.com';
+const AUTH = { token: LS.get('idtok',''), exp: LS.get('idexp',0), email: LS.get('idemail',''), waiters: [] };
+function authOk(){ return !!AUTH.token && Date.now() < AUTH.exp - 120000; }
+function jwtPayload(t){ try{ const b = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); }catch(e){ return {}; } }
+function onGoogleCredential(resp){
+  const p = jwtPayload(resp.credential);
+  if(p.hd !== DOMAIN){
+    $('#loginErr').textContent = 'Please use your @'+DOMAIN+' account' + (p.email ? ' ('+p.email+' is not allowed)' : '') + '.';
+    try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+    return;
+  }
+  AUTH.token = resp.credential; AUTH.exp = p.exp*1000; AUTH.email = p.email;
+  LS.set('idtok', AUTH.token); LS.set('idexp', AUTH.exp); LS.set('idemail', AUTH.email);
+  $('#loginWall').classList.add('hidden'); $('#loginErr').textContent = '';
+  const w = AUTH.waiters; AUTH.waiters = []; w.forEach(f=>f());
+}
+let gsiReady = null;
+function loadGsi(){
+  return gsiReady = gsiReady || new Promise((ok, no)=>{
+    const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = ()=>{ google.accounts.id.initialize({ client_id: CLIENT_ID, callback: onGoogleCredential, auto_select: true,
+      cancel_on_tap_outside: false, hd: DOMAIN, use_fedcm_for_prompt: true }); ok(); };
+    sc.onerror = ()=>no(new Error('Google sign-in could not load – check internet'));
+    document.head.appendChild(sc);
+  });
+}
+function needLogin(){
+  return new Promise(res=>{
+    AUTH.waiters.push(res);
+    $('#loginWall').classList.remove('hidden');
+    loadGsi().then(()=>{
+      google.accounts.id.renderButton($('#gsiBtn'), { theme:'outline', size:'large', text:'signin_with', shape:'pill', width:280 });
+      google.accounts.id.prompt();
+    }).catch(e=>{ $('#loginErr').textContent = e.message; });
+  });
+}
+function signOut(){
+  ['idtok','idexp','idemail'].forEach(k=>LS.set(k, ''));
+  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  location.reload();
+}
 async function run(fn, ...args){
-  let r;
-  try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args}), redirect:'follow', credentials:'omit'}); }
-  catch(e){ throw new Error('No connection to the SortCheck server – check internet'); }
-  let j; try{ j = await r.json(); }catch(e){ throw new Error('Unexpected reply from server (HTTP '+r.status+')'); }
-  if(!j.ok) throw new Error(j.error || 'Server error');
-  return j.result;
+  for(let attempt = 0; attempt < 3; attempt++){
+    const open = fn === 'getLogo';
+    if(!open && !authOk()) await needLogin();
+    let r;
+    try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args, token: open ? '' : AUTH.token}), redirect:'follow', credentials:'omit'}); }
+    catch(e){ throw new Error('No connection to the SortCheck server – check internet'); }
+    let j; try{ j = await r.json(); }catch(e){ throw new Error('Unexpected reply from server (HTTP '+r.status+')'); }
+    if(j.ok) return j.result;
+    if(j.error === 'LOGIN_REQUIRED'){ AUTH.token = ''; LS.set('idtok',''); continue; }
+    if(/sign in with your @/.test(j.error||'')){ AUTH.token = ''; LS.set('idtok',''); $('#loginErr').textContent = j.error; continue; }
+    throw new Error(j.error || 'Server error');
+  }
+  throw new Error('Sign-in required');
 }
 function toast(msg, ms=2500){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), ms); }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -280,9 +336,9 @@ function signOutGoogle(base){ switchAccount(base); }
 const STATUS_LABEL = l => l.status==='EXTRA' ? (l.not_in_wave ? 'NOT IN WAVE' : 'WRONG') : l.status;
 </script>
 <script>
-(function(){ const im = document.querySelector('header .logo'); if(!im) return;
-  const c = LS.get('logo',''); if(c) im.src = c;
-  run('getLogo').then(u=>{ if(u && u!==c){ im.src = u; LS.set('logo', u); } }).catch(()=>{});
+(function(){ const ims = [document.querySelector('header .logo'), $('#loginLogo')].filter(Boolean);
+  const c = LS.get('logo',''); if(c) ims.forEach(i=>i.src = c);
+  run('getLogo').then(u=>{ if(u && u!==c){ ims.forEach(i=>i.src = u); LS.set('logo', u); } }).catch(()=>{});
 })();
 </script>
 
