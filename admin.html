@@ -488,7 +488,7 @@ async function loadArch(){
     $('#arch').innerHTML = f.map(x=>`<li><a href="${esc(x.url)}" target="_blank">${esc(x.name)}</a></li>`).join('') || '<li class="muted">None yet</li>';
   }catch(e){ $('#arch').innerHTML = `<li>${esc(e.message)}</li>`; }
 }
-loadInfo().then(ok=>{ if(ok) loadInbox(); else $('#inboxSel').innerHTML='<option value="">(enter admin PIN)</option>'; }); loadWaves(); loadArch();
+loadInfo().then(ok=>{ if(ok) loadInbox(); else $('#inboxSel').innerHTML='<option value="">(admin sign-in required)</option>'; }); loadWaves(); loadArch();
 </script>
 </body>
 </html>
