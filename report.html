@@ -175,6 +175,7 @@ const LS = {
 };
 /* ---------- Google sign-in (@forwardlogauto.com only) + calls to the SortCheck server ---------- */
 const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec', CLIENT_ID = '91172054296-efavj9to958vrqkdk67pa96fo82466gk.apps.googleusercontent.com', DOMAIN = 'forwardlogauto.com';
+const ADMIN_FNS = ['importRows','listInbox','readInboxFile','flushWave','getAdminInfo'];
 const AUTH = { token: LS.get('idtok',''), exp: LS.get('idexp',0), email: LS.get('idemail',''), waiters: [] };
 function authOk(){ return !!AUTH.token && Date.now() < AUTH.exp - 120000; }
 function jwtPayload(t){ try{ const b = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); }catch(e){ return {}; } }
@@ -217,10 +218,10 @@ function signOut(){
 }
 async function run(fn, ...args){
   for(let attempt = 0; attempt < 3; attempt++){
-    const open = fn === 'getLogo';
-    if(!open && !authOk()) await needLogin();
+    const needAuth = ADMIN_FNS.includes(fn);           // only admin actions need Google sign-in
+    if(needAuth && !authOk()) await needLogin();
     let r;
-    try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args, token: open ? '' : AUTH.token}), redirect:'follow', credentials:'omit'}); }
+    try{ r = await fetch(API, {method:'POST', body: JSON.stringify({fn, args, token: authOk() ? AUTH.token : ''}), redirect:'follow', credentials:'omit'}); }
     catch(e){ throw new Error('No connection to the SortCheck server – check internet'); }
     let j; try{ j = await r.json(); }catch(e){ throw new Error('Unexpected reply from server (HTTP '+r.status+')'); }
     if(j.ok) return j.result;
