@@ -283,7 +283,7 @@ const LS = {
 };
 /* ---------- Google sign-in (@forwardlogauto.com only) + calls to the SortCheck server ---------- */
 const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec', CLIENT_ID = '91172054296-efavj9to958vrqkdk67pa96fo82466gk.apps.googleusercontent.com', DOMAIN = 'forwardlogauto.com';
-const ADMIN_FNS = ['importRows','listInbox','readInboxFile','flushWave','getAdminInfo'];
+const ADMIN_FNS = ['importRows','listInbox','readInboxFile','flushWave','getAdminInfo','saveInboxFile','getMappings','saveMapping'];
 const AUTH = { token: LS.get('idtok',''), exp: LS.get('idexp',0), email: LS.get('idemail',''), waiters: [] };
 function authOk(){ return !!AUTH.token && Date.now() < AUTH.exp - 120000; }
 function jwtPayload(t){ try{ const b = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); }catch(e){ return {}; } }

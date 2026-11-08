@@ -150,6 +150,7 @@ body.has-bar footer.tag{padding-bottom:96px}
 
   <div class="card">
     <h2>1 · Import sorting history</h2>
+    <div id="portalBanner" class="banner INFO hidden"><div class="bicon">&#8681;</div><div class="btxt" id="portalTxt"></div></div>
     <div class="row">
       <div><label>System / project</label><input id="iSys" list="sysList" placeholder="e.g. Shah Alam Wheel Sorter"><datalist id="sysList"></datalist></div>
       <div><label>Wave name</label><input id="iWave" placeholder="e.g. 2026-11-07 Wave 3"></div>
@@ -225,7 +226,7 @@ const LS = {
 };
 /* ---------- Google sign-in (@forwardlogauto.com only) + calls to the SortCheck server ---------- */
 const API = 'https://script.google.com/macros/s/AKfycbxqcZy5VzBUgzA8HAdKb8_Axsx0q3ycoKj9xk5axlibtZu3qm9VC7CY4mKBZmeD9aBQdA/exec', CLIENT_ID = '91172054296-efavj9to958vrqkdk67pa96fo82466gk.apps.googleusercontent.com', DOMAIN = 'forwardlogauto.com';
-const ADMIN_FNS = ['importRows','listInbox','readInboxFile','flushWave','getAdminInfo'];
+const ADMIN_FNS = ['importRows','listInbox','readInboxFile','flushWave','getAdminInfo','saveInboxFile','getMappings','saveMapping'];
 const AUTH = { token: LS.get('idtok',''), exp: LS.get('idexp',0), email: LS.get('idemail',''), waiters: [] };
 function authOk(){ return !!AUTH.token && Date.now() < AUTH.exp - 120000; }
 function jwtPayload(t){ try{ const b = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(escape(atob(b)))); }catch(e){ return {}; } }
@@ -382,6 +383,80 @@ $('#iFile').onchange = async ()=>{
     useRows(f.name);
   }catch(e){ toast('Could not read file: '+e.message); }
 };
+/* ---------- known site systems (wave files arrive from these sorter portals) */
+const SYSTEMS = ['SNT Wheel Sorter','SNT Tsort + 3D Sorter','SNT AIRROB','GDEX Putwall','AD Wheel Sorter','Watsons Putwall'];
+function fillSystems(extra){
+  $('#sysList').innerHTML = [...new Set(SYSTEMS.concat(extra||[]))].map(s=>`<option value="${esc(s)}">`).join('');
+}
+fillSystems();
+
+/* ---------- column mapping remembered per system (shared, saved on the server) */
+let MAPS = {};
+const mapKey = s => String(s||'').trim().toLowerCase();
+async function loadMaps(){ try{ MAPS = await run('getMappings', PIN) || {}; }catch(e){ MAPS = {}; } }
+function applySavedMap(){
+  const m = MAPS[mapKey($('#iSys').value)]; if(!m || !HDR.length) return false;
+  const idx = h => HDR.findIndex(x=>String(x).trim().toLowerCase()===String(h||'').trim().toLowerCase());
+  let hit = 0;
+  for(const [id,h] of Object.entries({mCont:m.cont, mBar:m.bar, mQty:m.qty, mWave:m.wave, mFilt:m.filt})){
+    if(h===undefined) continue;
+    if(h===''){ if(id!=='mCont' && id!=='mBar') $('#'+id).value=''; continue; }
+    const i = idx(h); if(i>=0){ $('#'+id).value = String(i); hit++; }
+  }
+  if(m.filtVal!==undefined) $('#mFiltVal').value = m.filtVal;
+  if(Array.isArray(m.info)) document.querySelectorAll('.infoCol').forEach(c=>{ c.checked = m.info.map(x=>String(x).toLowerCase()).includes(String(HDR[+c.value]).toLowerCase()); });
+  waveHint();
+  if(hit){ $('#prevInfo').textContent = '✓ Using the saved column mapping for '+$('#iSys').value+'. ' + $('#prevInfo').textContent; }
+  return hit>0;
+}
+function currentMap(){
+  const h = id => $('#'+id).value==='' ? '' : HDR[+$('#'+id).value];
+  return { cont:h('mCont'), bar:h('mBar'), qty:h('mQty'), wave:h('mWave'), filt:h('mFilt'), filtVal:$('#mFiltVal').value.trim(),
+           info:[...document.querySelectorAll('.infoCol:checked')].map(x=>HDR[+x.value]) };
+}
+$('#iSys').addEventListener('change', ()=>{ if(HDR.length && !$('#mapBox').classList.contains('hidden')) applySavedMap(); });
+
+/* ---------- hand-off from a site's sorter portal (Claude in Chrome skill "sortcheck-wave-upload")
+   The portal tab opens this page and posts {type:'sortcheck-wave', system, wave, name, base64}. The file is saved
+   into the SortCheck Inbox on Drive, then loaded here for the engineer to check and press Import. */
+let PORTAL_GOT = false;
+if(window.opener){
+  const ping = setInterval(()=>{ if(PORTAL_GOT) return clearInterval(ping); try{ window.opener.postMessage({type:'sortcheck-ready'}, '*'); }catch(e){ clearInterval(ping); } }, 700);
+  setTimeout(()=>clearInterval(ping), 120000);
+}
+window.addEventListener('message', async ev=>{
+  const d = ev.data || {};
+  if(d.type!=='sortcheck-wave' || PORTAL_GOT) return;
+  PORTAL_GOT = true;
+  const from = String(ev.origin||'').replace(/^https?:\/\//,'');
+  try{ ev.source && ev.source.postMessage({type:'sortcheck-received'}, '*'); }catch(e){}
+  $('#portalBanner').classList.remove('hidden');
+  $('#portalTxt').innerHTML = `Wave file received from <b>${esc(from)}</b><small>${esc(d.name||'')}</small>`;
+  try{
+    if(d.system) $('#iSys').value = d.system;
+    if(d.wave) $('#iWave').value = d.wave;
+    let b64 = d.base64 || '';
+    if(!b64 && Array.isArray(d.rows)){            // portal sent template rows: save them as an Excel file (all cells text)
+      const ws = XLSX.utils.aoa_to_sheet(d.rows.map(r=>r.map(c=>String(c??''))));
+      for(const k in ws){ if(k[0]!=='!' && ws[k]) { ws[k].t = 's'; ws[k].z = '@'; } }
+      ws['!cols'] = (d.rows[0]||[]).map((h,i)=>({wch: Math.min(40, Math.max(10, ...d.rows.slice(0,200).map(r=>String(r[i]??'').length)) + 2)}));
+      ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:d.rows.length-1, c:(d.rows[0]||[]).length-1}})};
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+      b64 = XLSX.write(wb, {bookType:'xlsx', type:'base64'});
+      d.name = String(d.name||'wave').replace(/\.[^.]+$/,'') + '.xlsx';
+    }
+    const saved = await run('saveInboxFile', d.name, b64, PIN);   // admin sign-in happens here if needed
+    $('#portalTxt').innerHTML = `Wave file received from <b>${esc(from)}</b> and saved to the SortCheck Inbox<small>${esc(saved.name)}</small>`;
+    loadInbox();
+    await loadMaps();
+    if(/\.(xlsx|xlsm)$/i.test(d.name)) ROWS = sheetRows(XLSX.read(b64, {type:'base64'}));
+    else ROWS = parseCSV(decodeURIComponent(escape(atob(b64))));
+    useRows(saved.name);
+    $('#mapBox').scrollIntoView({behavior:'smooth', block:'start'});
+    toast('Check the columns, then press Import', 4000);
+  }catch(e){ $('#portalBanner').className = 'banner ERR'; $('#portalTxt').innerHTML = 'Could not take the wave file<small>'+esc(e.message)+'</small>'; }
+});
+
 function sheetRows(wb){
   const ws = wb.Sheets[wb.SheetNames[0]];
   return XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''}).filter(r=>r.some(c=>String(c).trim()));
@@ -412,7 +487,7 @@ const GUESS = {
   mQty:[/^(qty|quantity)$/i, /quantity|qty|数量|pcs/i],
   mWave:[/^wave( ?no\.?)?$/i, /wave|波次/i],
   mFilt:[/status|result|状态/i] };
-const INFO_RE = /order|sku|name|desc|serial|s\/n|订单|品名/i;
+const INFO_RE = /order|sku|name|desc|serial|s\/n|^sn$|订单|品名/i;
 function guess(hdr, id, taken){
   for(const re of GUESS[id]){ const i = hdr.findIndex((h,k)=>!taken.includes(k) && re.test(String(h).trim())); if(i>=0) return i; }
   return -1;
@@ -455,6 +530,7 @@ function buildMap(){
   $('#prevInfo').textContent = body.length+' data rows' + (waves.length ? ' · '+waves.length+' wave(s): '+waves.slice(0,6).join(', ')+(waves.length>6?'…':'') : '') + '. Preview:';
   $('#prev').innerHTML = `<thead><tr>${hdr.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${body.slice(0,5).map(r=>`<tr>${hdr.map((_,i)=>`<td>${esc(r[i])}</td>`).join('')}</tr>`).join('')}</tbody>`;
   $('#mapBox').classList.remove('hidden'); $('#iProg').textContent = '';
+  applySavedMap();
 }
 $('#iGo').onclick = async ()=>{
   const sys=$('#iSys').value.trim(), waveIn=$('#iWave').value.trim(), wi=$('#mWave').value;
@@ -488,6 +564,7 @@ $('#iGo').onclick = async ()=>{
       done.push(`${wave}: ${imported} rows${skipped?' ('+skipped+' skipped – blank container/barcode)':''}`);
     }
     $('#iProg').textContent = `✓ Imported into ${sys} → ` + done.join(' · ');
+    try{ const m = currentMap(); await run('saveMapping', sys, m, PIN); MAPS[mapKey(sys)] = m; }catch(e){}
     toast('Import done'); ROWS=[]; $('#iFile').value=''; loadWaves();
   }catch(e){ $('#iProg').textContent = 'Error: '+e.message; }
   $('#iGo').disabled = false;
@@ -506,7 +583,7 @@ function askFlush(name){
 async function loadWaves(){
   let w = [];
   try{ w = await run('listWaves'); }catch(e){ $('#wRows').innerHTML = `<tr><td colspan="6">${esc(e.message)}</td></tr>`; return; }
-  $('#sysList').innerHTML = [...new Set(w.map(x=>x.system))].map(s=>`<option value="${esc(s)}">`).join('');
+  fillSystems(w.map(x=>x.system));
   $('#wRows').innerHTML = w.map(x=>`<tr><td>${esc(x.system)}</td><td><b>${esc(x.name)}</b><div class="muted">${esc(x.created_at)}</div></td><td>${x.containers}</td><td>${x.items}</td><td>${x.checked}/${x.containers}</td>
     <td style="white-space:nowrap"><button class="btn sec sm" data-rep="${esc(x.id)}">Report</button> <button class="btn bad sm" data-flush="${esc(x.id)}" data-name="${esc(x.name)}">Flush</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No waves</td></tr>';
   document.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>goTop('report.html?wave='+encodeURIComponent(b.dataset.rep)));
@@ -523,7 +600,7 @@ async function loadArch(){
     $('#arch').innerHTML = f.map(x=>`<li><a href="${esc(x.url)}" target="_blank">${esc(x.name)}</a></li>`).join('') || '<li class="muted">None yet</li>';
   }catch(e){ $('#arch').innerHTML = `<li>${esc(e.message)}</li>`; }
 }
-loadInfo().then(ok=>{ if(ok) loadInbox(); else $('#inboxSel').innerHTML='<option value="">(admin sign-in required)</option>'; }); loadWaves(); loadArch();
+loadInfo().then(ok=>{ if(ok){ loadInbox(); loadMaps(); } else $('#inboxSel').innerHTML='<option value="">(admin sign-in required)</option>'; }); loadWaves(); loadArch();
 </script>
 </body>
 </html>
