@@ -583,8 +583,30 @@ function show(id){
   $('#backBtn').classList.toggle('hidden', id==='vHome');
   S.view = id; Cam.close(); window.scrollTo(0,0);
   document.body.classList.toggle('has-bar', id==='vCont');
+  queueMicrotask(navRecord);
 }
 $('#backBtn').onclick = ()=>{ S.view==='vCont' ? openWave(S.waveId) : openHome(); };
+
+/* ---------- browser Back / Forward (phone back, Alt+Left, mouse back) */
+const NAV = { list: [], i: 0, skip: false };
+function navCur(){ return { v: S.view, w: S.waveId || null, c: S.view==='vCont' ? S.cont : null }; }
+function navKey(s){ if(!s) return ''; return s.v==='vHome' ? 'vHome' : s.v==='vWave' ? 'vWave|'+s.w : s.v+'|'+s.w+'|'+s.c; }
+function navRecord(){
+  const cur = navCur(), k = navKey(cur);
+  if(!NAV.list.length || k===navKey(NAV.list[NAV.i])){ NAV.list[NAV.i] = cur; history.replaceState({fl:1, i:NAV.i, s:cur}, ''); return; }
+  if(NAV.i>0 && k===navKey(NAV.list[NAV.i-1])){ NAV.skip = true; NAV.i--; NAV.list[NAV.i] = cur; history.back(); return; }
+  NAV.list.length = NAV.i+1; NAV.list.push(cur); NAV.i++;
+  history.pushState({fl:1, i:NAV.i, s:cur}, '');
+}
+window.addEventListener('popstate', ev=>{
+  if(NAV.skip){ NAV.skip = false; return; }
+  const st = ev.state; if(!st || !st.fl) return;
+  const t = st.s || {v:'vHome'};
+  NAV.i = st.i;
+  if(t.v==='vHome' || !t.w){ NAV.list[st.i] = {v:'vHome'}; openHome(); }
+  else if(t.v==='vCont' && t.c && S.waveId===t.w && S.data){ NAV.list[st.i] = t; openContainer(t.c); }
+  else { NAV.list[st.i] = {v:'vWave', w:t.w}; openWave(t.w); }
+});
 
 /* ---------- HOME */
 async function openHome(){
