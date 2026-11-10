@@ -612,12 +612,17 @@ window.addEventListener('popstate', ev=>{
 async function openHome(){
   show('vHome'); $('#title').textContent = 'Sorting check';
   $('#userIn').value = S.user;
+  // Speed: show the wave list saved on this device at once, then refresh it from the server.
+  if(!S.waves.length){ const cw = LS.get('wavesCache', null); if(Array.isArray(cw) && cw.length){ S.waves = cw; renderHome(); } }
   try{
     const b = await run('getBoot');
-    S.email = b.user; S.waves = b.waves;
+    S.email = b.user; S.waves = b.waves; LS.set('wavesCache', b.waves);
     $('#emailTxt').textContent = b.user ? 'Signed in as '+b.user : '';
     if(!S.user && b.user){ S.user = b.user.split('@')[0]; $('#userIn').value = S.user; LS.set('user', S.user); }
   }catch(e){ toast('Could not load waves: '+e.message); }
+  if(S.view==='vHome') renderHome();
+}
+function renderHome(){
   const systems = [...new Set(S.waves.map(w=>w.system))];
   const prev = LS.get('system','');
   $('#sysSel').innerHTML = systems.map(s=>`<option ${s===prev?'selected':''}>${esc(s)}</option>`).join('');
@@ -654,10 +659,12 @@ async function openWave(id){
   $('#contList').innerHTML = '<li class="muted">Loading…</li>';
   $('#waveBanner').innerHTML = '';
   try{
-    await loadWaveData(id);
+    // Speed: wave details and progress load at the same time (unsent scans are sent first so the progress includes them).
+    const pData = loadWaveData(id);
+    const pOv = Q.flush(8000).then(()=>run('getOverview', id)); pOv.catch(()=>{});
+    await pData;
     $('#title').textContent = S.data.wave.name; $('#wName').textContent = S.data.wave.name; $('#wSys').textContent = S.data.wave.system;
-    await Q.flush(8000);
-    S.ov = await run('getOverview', id);
+    S.ov = await pOv;
   }catch(e){ toast(e.message); if(!S.data) return openHome(); }
   const fb = S.lastDone; S.lastDone = null;
   if(fb) $('#waveBanner').innerHTML = `<div class="banner flash ${fb.n?'ERR':'OK'}"><span class="bicon">${fb.n?'!':'&#10003;'}</span><div class="btxt">${esc(fb.c)} done — ${fb.n? fb.n+' discrepanc'+(fb.n>1?'ies':'y') : 'all OK'}<small>Scan the next container</small></div></div>`;
