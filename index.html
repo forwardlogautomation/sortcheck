@@ -135,6 +135,7 @@ body.has-bar footer.tag{padding-bottom:96px}
 .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;z-index:60;font-size:14px;font-weight:600;max-width:90%;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .loading{padding:40px;text-align:center;color:var(--muted)}
 @media print{header.top button,.noprint,.sync{display:none!important}body{background:#fff}.card{border:0;padding:0;box-shadow:none}}
+header.top .logolink{display:block;flex:0 0 auto;margin-right:auto;line-height:0;cursor:pointer;border-radius:6px}header.top .logolink .logo{margin-left:0;margin-right:0}header.top .logolink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 </style>
 
 <!-- FL-HEADER v1: same top bar look as the Presales portal (account chip, title row). -->
@@ -265,7 +266,7 @@ header.top .htitle h1,.topbar .htitle .ctx{font-size:15px;font-weight:700;color:
 
 <header class="top">
   <button id="backBtn" class="hidden" aria-label="Back">&#8249;</button>
-  <img class="logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Forwardlog" onerror="this.style.display='none'">
+  <a class="logolink" id="logoHome" href="./" aria-label="Home" title="Home"><img class="logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" alt="Forwardlog" onerror="this.style.display='none'"></a>
   <div class="htitle"><span class="app">SortCheck</span><h1 id="title">Sorting check</h1></div>
   <span class="sync" id="syncBadge"></span>
 </header>
@@ -891,6 +892,8 @@ $('#camClose').onclick = ()=>Cam.close();
 badge(); Q.kick();
 const startWave = (new URLSearchParams(location.search).get('wave')||'').replace(/[^A-Za-z0-9_-]/g,'');
 if(startWave) openWave(startWave); else openHome();
+
+document.getElementById('logoHome').addEventListener('click', function (e) { e.preventDefault(); openHome(); window.scrollTo(0, 0); });
 </script>
 </body>
 </html>
