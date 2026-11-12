@@ -465,30 +465,26 @@ if(AUTH.email && !authOk() && !IN_APP) loadGsi().then(()=>google.accounts.id.pro
 const BASE = new URL('./', location.href).href;
 $('#back').onclick = ()=>goTop(BASE);
 let ROWS = [];
-let PIN = LS.get('adminpin', '');
+// No admin PIN: access comes from Google sign-in + the admin list in Settings (control centre).
+// The backend functions still take a PIN as their last argument, so an empty one is sent.
+const PIN = '';
+try{ localStorage.removeItem('sc_adminpin'); }catch(e){}   // forget any PIN saved by the old page
 
 async function loadInfo(){
   try{
     const i = await run('getAdminInfo', PIN);
     if(!i.isAdmin){
-      $('#infoCard').innerHTML = `<h2>Admin PIN</h2><div class="muted" style="margin-bottom:8px">${i.pinRequired ? 'Enter the admin PIN to import and flush waves.' : 'Your account is not on the admin list.'}</div>
-        ${i.pinRequired ? '<div class="row"><input id="pinIn" type="password" inputmode="numeric" placeholder="Admin PIN"><button class="btn nogrow" id="pinGo">Unlock</button></div>' : ''}`;
-      if(i.pinRequired){
-        const go = async ()=>{ PIN = $('#pinIn').value.trim(); LS.set('adminpin', PIN); if(await loadInfo()) loadInbox(); else toast('Wrong PIN'); };
-        $('#pinGo').onclick = go; $('#pinIn').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
-      }
+      $('#infoCard').innerHTML = `<h2>No admin access</h2><div class="muted">${i.user ? esc(i.user)+' is' : 'Your account is'} not an admin of SortCheck. Ask an admin to add you in Settings (control centre).</div>`;
       return false;
     }
     $('#infoCard').innerHTML = `<div class="row"><div class="grow"><b>Admin access</b>
-      <div class="muted">${i.pinRequired ? 'Unlocked with admin PIN' : i.user ? 'Signed in as '+esc(i.user) : ''}</div></div>
-      ${i.pinRequired ? '<button class="btn sec sm nogrow" id="lockBtn">Lock</button>' : ''}</div>
+      <div class="muted">${i.user ? 'Signed in as '+esc(i.user) : ''}</div></div></div>
       <div class="row" style="margin-top:8px">
         <a class="btn sec sm" href="${esc(i.sheet)}" target="_blank">Open data sheet</a>
         ${i.inbox?`<a class="btn sec sm" href="${esc(i.inbox)}" target="_blank">Inbox folder</a>`:''}
         ${i.reports?`<a class="btn sec sm" href="${esc(i.reports)}" target="_blank">Reports folder</a>`:''}
         <button class="btn sec sm" onclick="navigator.clipboard&&navigator.clipboard.writeText(BASE);toast('Engineer link copied')">Copy engineer link</button>
       </div>`;
-    if($('#lockBtn')) $('#lockBtn').onclick = ()=>{ PIN=''; LS.set('adminpin',''); loadInfo(); $('#inboxSel').innerHTML='<option value="">(locked)</option>'; };
     return true;
   }catch(e){ $('#infoCard').innerHTML = `<b style="color:var(--bad)">${esc(e.message)}</b>`; return false; }
 }
